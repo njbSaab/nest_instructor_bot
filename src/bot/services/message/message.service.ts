@@ -69,80 +69,81 @@ export class MessageService {
     }
   }
   private async handleChildMenu(ctx: Context, button: MenuButton) {
-      console.log('Обрабатываем дочернюю кнопку:', button);
+    console.log('Обрабатываем дочернюю кнопку:', button);
 
-      if (button.action === 'back') {
-          console.log('Кнопка "Назад" нажата.');
-          await this.handleBackAction(ctx, button);
-          return;
-      }
+    if (button.action === 'back') {
+        console.log('Кнопка "Назад" нажата.');
+        await this.handleBackAction(ctx, button);
+        return;
+    }
 
-      console.log('Показываем контент дочерней кнопки:', button.content);
+    console.log('Показываем контент дочерней кнопки:', button.content);
 
-      // Используем KeyboardService для формирования клавиатуры
-      const keyboard = await this.keyboardService.generateKeyboard(button.id);
+    // Используем KeyboardService для формирования клавиатуры
+    const keyboard = await this.keyboardService.generateKeyboard(button.id);
 
-      if (keyboard.length > 0 && !button.is_inline) {
-          console.log('Добавляем кнопку "Назад" в клавиатуру.');
-          keyboard.push([{ text: '🔙 Назад' }]);
-      }
+    // Проверяем условия для добавления кнопки "Назад"
+    if (keyboard.length > 0 && button.parent_id !== 1) {
+        console.log('Добавляем кнопку "Назад" в клавиатуру.');
+        keyboard.push([{ text: '🔙 Назад' }]);
+    }
 
-      if (keyboard.length > 0) {
-          console.log('Сформированная клавиатура для дочерних кнопок:', keyboard);
-          await ctx.reply(button.content || 'Выберите:', {
-              reply_markup: {
-                  keyboard: keyboard,
-                  resize_keyboard: true,
-              },
-          });
-      } else {
-          console.log('Нет дочерних кнопок. Показываем только контент.');
-          await ctx.reply(button.content || 'Нет дополнительной информации.');
-      }
+    if (keyboard.length > 0) {
+        console.log('Сформированная клавиатура для дочерних кнопок:', keyboard);
+        await ctx.reply(button.content || 'Выберите:', {
+            reply_markup: {
+                keyboard: keyboard,
+                resize_keyboard: true,
+            },
+        });
+    } else {
+        console.log('Нет дочерних кнопок. Показываем только контент.');
+        await ctx.reply(button.content || 'Нет дополнительной информации.');
+    }
   }
   private async handleBackAction(ctx: Context, button: MenuButton) {
-      console.log(`Обрабатываем действие "Назад" для кнопки:`, button);
+    console.log(`Обрабатываем действие "Назад" для кнопки:`, button);
 
-      const parentButton = await this.menuButtonRepository.findOne({
-          where: { id: button.parent_id },
-      });
+    const parentButton = await this.menuButtonRepository.findOne({
+        where: { id: button.parent_id },
+    });
 
-      if (parentButton) {
-          console.log(`Родительская кнопка найдена:`, parentButton);
+    if (parentButton) {
+        console.log(`Родительская кнопка найдена:`, parentButton);
 
-          const keyboard = await this.keyboardService.generateKeyboard(parentButton.id, parentButton.parent_id !== null);
+        const keyboard = await this.keyboardService.generateKeyboard(parentButton.id, parentButton.parent_id !== null);
 
-          console.log('Сформированная клавиатура для родительского меню:', keyboard);
+        console.log('Сформированная клавиатура для родительского меню:', keyboard);
 
-          await ctx.reply(parentButton.content || 'Выберите:', {
-              reply_markup: {
-                  keyboard: keyboard,
-                  resize_keyboard: true,
-              },
-          });
-      } else {
-          console.log('Родительская кнопка не найдена. Возвращаемся в главное меню.');
-          await this.sendMainMenu(ctx);
-      }
+        await ctx.reply(parentButton.content || 'Выберите:', {
+            reply_markup: {
+                keyboard: keyboard,
+                resize_keyboard: true,
+            },
+        });
+    } else {
+        console.log('Родительская кнопка не найдена. Возвращаемся в главное меню.');
+        await this.sendMainMenu(ctx);
+    }
   }
   private async sendMainMenu(ctx: Context) {
-      console.log('Формируем главное меню...');
+    console.log('Формируем главное меню...');
 
-      const keyboard = await this.keyboardService.generateKeyboard(1);
+    const keyboard = await this.keyboardService.generateKeyboard(1);
 
-      if (!keyboard.length) {
-          console.log('Главное меню не сформировано. Кнопки отсутствуют.');
-          await ctx.reply('Главное меню временно недоступно.');
-          return;
-      }
+    if (!keyboard.length) {
+        console.log('Главное меню не сформировано. Кнопки отсутствуют.');
+        await ctx.reply('Главное меню временно недоступно.');
+        return;
+    }
 
-      console.log('Сформированная клавиатура для главного меню:', keyboard);
+    console.log('Сформированная клавиатура для главного меню:', keyboard);
 
-      await ctx.reply('📋 Главное меню:', {
-          reply_markup: {
-              keyboard: keyboard,
-              resize_keyboard: true,
-          },
-      });
+    await ctx.reply('📋 Главное меню:', {
+        reply_markup: {
+            keyboard: keyboard,
+            resize_keyboard: true,
+        },
+    });
   }
 }

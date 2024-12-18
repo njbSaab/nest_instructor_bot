@@ -26,7 +26,7 @@ export class KeyboardService {
     console.log(`Найдено ${allButtons.length} кнопок.`);
 
     const groupedButtons = allButtons.reduce((acc, button) => {
-        const row = button.row_order || 9999;
+        const row = button.row_order || 9999; // Кнопки без row_order помещаем в конец
         if (!acc[row]) {
             acc[row] = [];
         }
@@ -38,12 +38,13 @@ export class KeyboardService {
         .sort((a, b) => Number(a) - Number(b))
         .map((row) => groupedButtons[row]);
 
-    if (addBackButton) {
+    // Добавляем кнопку "Назад", если это не главное меню
+    if (addBackButton && parentId !== 1) {
         keyboard.push([{ text: '🔙 Назад' }]);
     }
 
     console.log(`Сформированная клавиатура для parent_id ${parentId}:`, keyboard);
 
     return keyboard;
-}
+   }
 }
