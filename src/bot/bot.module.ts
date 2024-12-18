@@ -11,6 +11,7 @@ import { MessageService } from './services/message/message.service';
 import {PaymentService} from './services/payment/payment.service';
 import { User } from './entities/user.entity';
 import { MenuButton } from './entities/menu-button.entity';
+import { KeyboardService } from './services/keyboard/keyboard.service';
 
 
 @Module({
@@ -37,7 +38,8 @@ import { MenuButton } from './entities/menu-button.entity';
     StartService,
     HelpService,
     MessageService,
-    PaymentService
+    PaymentService,
+    KeyboardService
   ],
 })
 export class BotModule {}
