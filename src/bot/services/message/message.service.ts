@@ -80,19 +80,29 @@ export class MessageService {
   }
 
   private async sendMainMenu(ctx: Context) {
-    // Загружаем кнопки верхнего уровня (parent_id = null)
+    // Загружаем кнопки верхнего уровня
     const buttons = await this.menuButtonRepository.find({
       where: { parent_id: null },
-      order: { id: 'ASC' },
+      order: { row_order: 'ASC', column_order: 'ASC' },
     });
   
-    console.log('Главное меню кнопки:', buttons);
+    // Формируем строки клавиатуры на основе row_order
+    const keyboard: { text: string }[][] = [];
+    buttons.forEach((button) => {
+      const rowIndex = button.row_order - 1; // Индекс строки (0-based)
+      if (!keyboard[rowIndex]) {
+        keyboard[rowIndex] = []; // Создаем строку, если её нет
+      }
+      keyboard[rowIndex][button.column_order] = { text: button.name }; // Размещаем кнопку в колонке
+    });
   
-    const keyboard = buttons.map((btn) => [{ text: btn.name }]);
+    // Убираем пустые строки (на случай, если их пропустили в БД)
+    const filteredKeyboard = keyboard.filter((row) => row.length > 0);
   
+    // Отправляем клавиатуру
     await ctx.reply('📋 Главное меню:', {
       reply_markup: {
-        keyboard: keyboard,
+        keyboard: filteredKeyboard,
         resize_keyboard: true,
       },
     });

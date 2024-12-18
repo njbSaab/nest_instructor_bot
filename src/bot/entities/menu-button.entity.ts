@@ -17,6 +17,12 @@ export class MenuButton {
   @Column({ type: 'text', nullable: true })
   content: string | null; // Контент кнопки
 
+  @Column({ type: 'int', nullable: true })
+  row_order: number | null; // Порядок строки кнопки
+
+  @Column({ type: 'int', nullable: true })
+  column_order: number | null; // Порядок столбца кнопки
+
   @CreateDateColumn()
   created_at: Date;
 

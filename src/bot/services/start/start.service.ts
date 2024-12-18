@@ -64,22 +64,36 @@ export class StartService {
   }
 
   private async generateKeyboard() {
-    console.log('Получаем кнопки с parent_id = NULL...');
-  
-    const buttons = await this.menuButtonRepository.find({
-      where: { parent_id: null }, // Кнопки верхнего уровня
-      order: { id: 'ASC' },
+    console.log('Получаем все кнопки из базы данных...');
+
+    // Получаем все кнопки из базы данных
+    const allButtons = await this.menuButtonRepository.find({
+        order: { row_order: 'ASC', column_order: 'ASC' },
     });
-  
-    console.log('Кнопки из базы данных:', buttons);
-  
-    // Убедимся, что только кнопки верхнего уровня используются для клавиатуры
-    const keyboard = buttons
-      .filter((button) => button.parent_id === null)
-      .map((button) => [{ text: button.name }]);
-  
+
+    console.log('Кнопки из базы данных:', allButtons);
+
+    // Фильтруем только кнопки верхнего уровня
+    const topLevelButtons = allButtons.filter((button) => button.parent_id === null);
+
+    console.log('Кнопки верхнего уровня:', topLevelButtons);
+
+    // Группируем кнопки верхнего уровня по row_order
+    const groupedButtons = topLevelButtons.reduce((acc, button) => {
+        if (!acc[button.row_order]) {
+            acc[button.row_order] = [];
+        }
+        acc[button.row_order].push({ text: button.name });
+        return acc;
+    }, {});
+
+    // Преобразуем в массив массивов для клавиатуры Telegraf
+    const keyboard = Object.keys(groupedButtons)
+        .sort((a, b) => Number(a) - Number(b)) // Сортируем строки по row_order
+        .map((row) => groupedButtons[row]);
+
     console.log('Сформированная клавиатура:', keyboard);
-  
+
     return keyboard;
-  }
+}
 }
