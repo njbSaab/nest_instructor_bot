@@ -3,18 +3,35 @@ import { Context } from 'telegraf';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/user.entity'; // Сущность пользователя
+import { MenuButton } from '../../entities/menu-button.entity'; // Сущность кнопки
 
 @Injectable()
 export class StartService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(MenuButton)
+    private readonly menuButtonRepository: Repository<MenuButton>,
   ) {}
 
   async handleStart(ctx: Context) {
-    const userInfo = ctx.from; // Извлекаем информацию из контекста Telegram
+    // Сохраняем или обновляем данные пользователя в базе
+    await this.saveUser(ctx);
 
-    // Формируем данные пользователя
+    // Отправляем главное меню
+    await ctx.reply('📋 Главное меню:', {
+      reply_markup: {
+        keyboard: await this.generateKeyboard(),
+        resize_keyboard: true,
+        one_time_keyboard: false,
+      },
+    });
+  }
+
+  private async saveUser(ctx: Context) {
+    const userInfo = ctx.from; // Информация о пользователе из Telegram
+
+    // Формируем данные для нового пользователя
     const userData = {
       id: userInfo.id,
       username: userInfo.username || null,
@@ -29,12 +46,12 @@ export class StartService {
     let user = await this.userRepository.findOne({ where: { id: userData.id } });
 
     if (!user) {
-      // Если пользователь новый, сохраняем его
+      // Если пользователь новый, добавляем его в базу
       user = this.userRepository.create(userData);
       await this.userRepository.save(user);
-      console.log('Новый пользователь сохранён:', user);
+      console.log('Новый пользователь добавлен:', user);
     } else {
-      // Если пользователь существует, обновляем его данные
+      // Если пользователь уже существует, обновляем его данные
       user.started_at = new Date();
       user.state = 'menu';
       user.username = userData.username;
@@ -44,27 +61,25 @@ export class StartService {
       await this.userRepository.save(user);
       console.log('Информация о пользователе обновлена:', user);
     }
-
-    // Отправляем приветственное сообщение и главное меню
-    await ctx.reply(`👋 Добро пожаловать, ${userData.first_name}!\n`);
-    await this.sendMainMenu(ctx);
   }
 
-  // Метод отправки главного меню
-  private async sendMainMenu(ctx: Context) {
-    await ctx.reply(  '📋 Здесь вы можете выбрать, что Вас интересует!\n\n' +
-      '📖 Инструкция\n' +
-      '💳 Оплата\n' +
-      '❓ Помощь\n' +
-      '🎁 Промо', {
-      reply_markup: {
-        keyboard: [
-          [{ text: '📖 Инструкция' }],
-          [{ text: '💳 Оплата' }],
-          [{ text: '❓ Помощь' }, { text: '🎁 Промо' }],
-        ],
-        resize_keyboard: true,
-      },
+  private async generateKeyboard() {
+    console.log('Получаем кнопки с parent_id = NULL...');
+  
+    const buttons = await this.menuButtonRepository.find({
+      where: { parent_id: null }, // Кнопки верхнего уровня
+      order: { id: 'ASC' },
     });
+  
+    console.log('Кнопки из базы данных:', buttons);
+  
+    // Убедимся, что только кнопки верхнего уровня используются для клавиатуры
+    const keyboard = buttons
+      .filter((button) => button.parent_id === null)
+      .map((button) => [{ text: button.name }]);
+  
+    console.log('Сформированная клавиатура:', keyboard);
+  
+    return keyboard;
   }
 }

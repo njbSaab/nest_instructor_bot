@@ -10,6 +10,8 @@ import { HelpService } from './services/help/help.service';
 import { MessageService } from './services/message/message.service';
 import {PaymentService} from './services/payment/payment.service';
 import { User } from './entities/user.entity';
+import { MenuButton } from './entities/menu-button.entity';
+
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { User } from './entities/user.entity';
     }),
     // Подключаем TypeORM и сущность User
     TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, MenuButton]), // Подключаем сущности User и MenuButton
+
   ],
   providers: [
     BotService,

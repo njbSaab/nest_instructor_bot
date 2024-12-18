@@ -1,29 +1,25 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('menu_buttons')
 export class MenuButton {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  name: string;
+  @Column({ type: 'varchar', length: 255 })
+  name: string; // Название кнопки
 
-  @Column({ unique: true })
-  action: string;
+  @Column({ type: 'varchar', length: 255, unique: true })
+  action: string; // Уникальное действие
 
-  @Column({ nullable: true })
-  parent_id: number;
+  @Column({ type: 'int', nullable: true })
+  parent_id: number | null; // Родительская кнопка, если есть
 
   @Column({ type: 'text', nullable: true })
-  content: string;
+  content: string | null; // Контент кнопки
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn()
   created_at: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn()
   updated_at: Date;
-
-  @ManyToOne(() => MenuButton, { nullable: true })
-  @JoinColumn({ name: 'parent_id' })
-  parent: MenuButton;
 }
