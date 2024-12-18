@@ -13,7 +13,6 @@ export class PromoService {
                 { text: '🎟️ Free Spin', callback_data: 'promo_freespin' },
                 { text: '🎁 Free Bet', callback_data: 'promo_freebet' },
               ],
-              [{ text: '🔙 Назад', callback_data: 'promo_back' }],
             ],
           },
         });
@@ -34,9 +33,6 @@ export class PromoService {
             break;
           case 'promo_freebet':
             await ctx.reply('🎁 Вы получили Free Bet!');
-            break;
-          case 'promo_back':
-            await ctx.reply('🔙 Возвращаемся в главное меню...');
             break;
           default:
             await ctx.reply('❌ Неизвестная команда.');
