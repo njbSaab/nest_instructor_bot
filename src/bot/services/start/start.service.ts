@@ -74,7 +74,7 @@ export class StartService {
     console.log('Кнопки из базы данных:', allButtons);
 
     // Фильтруем только кнопки верхнего уровня
-    const topLevelButtons = allButtons.filter((button) => button.parent_id === null);
+    const topLevelButtons = allButtons.filter((button) => button.parent_id === 1);
 
     console.log('Кнопки верхнего уровня:', topLevelButtons);
 
@@ -95,5 +95,5 @@ export class StartService {
     console.log('Сформированная клавиатура:', keyboard);
 
     return keyboard;
-}
+  }
 }

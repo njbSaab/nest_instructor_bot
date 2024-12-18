@@ -23,6 +23,12 @@ export class MenuButton {
   @Column({ type: 'int', nullable: true })
   column_order: number | null; // Порядок столбца кнопки
 
+  @Column({ type: 'boolean', default: false })
+  is_inline: boolean; // Является ли кнопка инлайн-кнопкой
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  group_key: string | null; // Группа кнопок (для инлайн-кнопок)
+
   @CreateDateColumn()
   created_at: Date;
 

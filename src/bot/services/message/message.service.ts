@@ -1,3 +1,4 @@
+import { PromoService } from '../promo/promo.service';
 import { Injectable } from '@nestjs/common';
 import { Context } from 'telegraf';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,6 +10,7 @@ export class MessageService {
   constructor(
     @InjectRepository(MenuButton)
     private readonly menuButtonRepository: Repository<MenuButton>,
+    private readonly promoService: PromoService,
   ) {}
 
   async handleText(ctx: Context) {
@@ -20,91 +22,134 @@ export class MessageService {
     });
 
     if (!button) {
-      // Если кнопка не найдена, показываем ошибку
       await ctx.reply('❌ Неизвестная команда. Выберите раздел из меню.');
       return;
     }
 
-    if (button.parent_id === null) {
-      // Если это кнопка верхнего уровня, обрабатываем как основное меню
-      await this.handleMainMenu(ctx, button);
+    if (button.action === 'promo') {
+      console.log('Кнопка "Промо" нажата. Переходим к PromoService.');
+      await this.promoService.sendPromoMenu(ctx);
     } else {
-      // Если это дочерняя кнопка, показываем её действие
-      await this.handleChildMenu(ctx, button);
+      // Обрабатываем другие кнопки
+      if (button.parent_id === null) {
+        await this.handleMainMenu(ctx, button);
+      } else {
+        await this.handleChildMenu(ctx, button);
+      }
     }
   }
-
   private async handleMainMenu(ctx: Context, button: MenuButton) {
+    console.log('Обрабатываем главное меню для кнопки:', button);
+
     // Загружаем дочерние кнопки
     const childButtons = await this.menuButtonRepository.find({
-      where: { parent_id: button.id },
+        where: { parent_id: button.id },
+        order: { row_order: 'ASC', column_order: 'ASC' },
     });
-  
+
+    console.log('Дочерние кнопки для главного меню:', childButtons);
+
     if (childButtons.length > 0) {
-      // Если есть дочерние кнопки, формируем клавиатуру
-      const keyboard = childButtons.map((btn) => [{ text: btn.name }]);
-    
-      await ctx.reply(button.content || 'Выберите:', {
-        reply_markup: {
-          keyboard: keyboard,
-          resize_keyboard: true,
-        },
-      });
+        // Если есть дочерние кнопки, формируем клавиатуру
+        const keyboard = childButtons.map((btn) => [{ text: btn.name }]);
+
+        // Добавляем кнопку "Назад" только если parent_id != 1
+        if (button.parent_id !== 1) {
+            keyboard.push([{ text: '🔙 Назад' }]);
+        }
+
+        console.log('Сформированная клавиатура для главного меню:', keyboard);
+
+        await ctx.reply(button.content || 'Выберите:', {
+            reply_markup: {
+                keyboard: keyboard,
+                resize_keyboard: true,
+            },
+        });
     } else {
-      // Если дочерних кнопок нет, показываем контент
-      await ctx.reply(button.content || 'Нет дополнительной информации.');
+        console.log('Показываем контент кнопки:', button.content);
+        await ctx.reply(button.content || 'Нет дополнительной информации.');
     }
   }
-
   private async handleChildMenu(ctx: Context, button: MenuButton) {
+    console.log('Обрабатываем дочернюю кнопку:', button);
+
     if (button.action === 'back') {
-      // Проверяем, есть ли родительская кнопка
-      const parentButton = await this.menuButtonRepository.findOne({
-        where: { id: button.parent_id },
-      });
-  
-      if (parentButton && parentButton.parent_id === null) {
-        // Если родительская кнопка верхнего уровня, возвращаем главное меню
-        await this.sendMainMenu(ctx);
-      } else if (parentButton) {
-        // Иначе возвращаемся к родительскому меню
-        await this.handleMainMenu(ctx, parentButton);
-      } else {
-        // Если родительская кнопка не найдена, возвращаем главное меню
-        await this.sendMainMenu(ctx);
-      }
+        console.log('Кнопка "Назад" нажата.');
+
+        // Возвращаемся к меню родительского уровня
+        const parentButton = await this.menuButtonRepository.findOne({
+            where: { id: button.parent_id },
+        });
+
+        console.log('Найденная родительская кнопка для возврата:', parentButton);
+
+        if (parentButton && parentButton.parent_id === 1) {
+            // Если родительский элемент - кнопка уровня 1, возвращаем главное меню
+            await this.sendMainMenu(ctx);
+        } else if (parentButton) {
+            // Возвращаемся к меню родительского уровня
+            await this.handleMainMenu(ctx, parentButton);
+        } else {
+            console.log('Родительская кнопка не найдена. Возвращаемся в главное меню.');
+            await this.sendMainMenu(ctx);
+        }
     } else {
-      // Показываем контент дочерней кнопки
-      await ctx.reply(button.content || 'Нет дополнительной информации.');
+        console.log('Показываем контент дочерней кнопки:', button.content);
+
+        // Проверяем наличие дочерних кнопок
+        const childButtons = await this.menuButtonRepository.find({
+            where: { parent_id: button.id },
+            order: { row_order: 'ASC', column_order: 'ASC' },
+        });
+
+        console.log('Дочерние кнопки для текущей кнопки:', childButtons);
+
+        if (childButtons.length > 0) {
+            const keyboard = childButtons.map((btn) => [{ text: btn.name }]);
+
+            console.log('Сформированная клавиатура для дочерних кнопок:', keyboard);
+
+            await ctx.reply(button.content || 'Выберите:', {
+                reply_markup: {
+                    keyboard: keyboard,
+                    resize_keyboard: true,
+                },
+            });
+        } else {
+            // Если дочерних кнопок нет, показываем только контент кнопки
+            await ctx.reply(button.content || 'Нет дополнительной информации.');
+        }
     }
   }
-
   private async sendMainMenu(ctx: Context) {
-    // Загружаем кнопки верхнего уровня
+    console.log('Отправляем главное меню...');
+
     const buttons = await this.menuButtonRepository.find({
-      where: { parent_id: null },
-      order: { row_order: 'ASC', column_order: 'ASC' },
+        where: { parent_id: 1 },
+        order: { row_order: 'ASC', column_order: 'ASC' },
     });
-  
-    // Формируем строки клавиатуры на основе row_order
+
+    console.log('Кнопки верхнего уровня для главного меню:', buttons);
+
     const keyboard: { text: string }[][] = [];
     buttons.forEach((button) => {
-      const rowIndex = button.row_order - 1; // Индекс строки (0-based)
-      if (!keyboard[rowIndex]) {
-        keyboard[rowIndex] = []; // Создаем строку, если её нет
-      }
-      keyboard[rowIndex][button.column_order] = { text: button.name }; // Размещаем кнопку в колонке
+        const rowIndex = button.row_order - 1;
+        if (!keyboard[rowIndex]) {
+            keyboard[rowIndex] = [];
+        }
+        keyboard[rowIndex][button.column_order] = { text: button.name };
     });
-  
-    // Убираем пустые строки (на случай, если их пропустили в БД)
+
     const filteredKeyboard = keyboard.filter((row) => row.length > 0);
-  
-    // Отправляем клавиатуру
+
+    console.log('Сформированная клавиатура для главного меню:', filteredKeyboard);
+
     await ctx.reply('📋 Главное меню:', {
-      reply_markup: {
-        keyboard: filteredKeyboard,
-        resize_keyboard: true,
-      },
+        reply_markup: {
+            keyboard: filteredKeyboard,
+            resize_keyboard: true,
+        },
     });
   }
 }
