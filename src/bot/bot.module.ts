@@ -1,22 +1,39 @@
 import { Module } from '@nestjs/common';
 import { TelegrafModule } from 'nestjs-telegraf';
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { BotService } from './services/bot.service';
 import { PromoService } from './services/promo/promo.service';
 import { StartService } from './services/start/start.service';
 import { HelpService } from './services/help/help.service';
 import { MessageService } from './services/message/message.service';
-import {PaymentService} from "./services/payment/payment.service";
+import {PaymentService} from './services/payment/payment.service';
+import { User } from './entities/user.entity';
 
 @Module({
   imports: [
-    TelegrafModule.forRootAsync({
-      useFactory: (configService: ConfigService) => ({
-        token: configService.get<string>('TEL_TOKEN'), // Получаем токен из .env
-      }),
-      inject: [ConfigService],
+    // Подключаем ConfigModule для работы с .env
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
+    // Настраиваем TelegrafModule с использованием токена из .env
+    TelegrafModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        token: configService.get<string>('TEL_TOKEN'), // Получаем токен
+      }),
+    }),
+    // Подключаем TypeORM и сущность User
+    TypeOrmModule.forFeature([User]),
   ],
-  providers: [BotService, PromoService, StartService, HelpService, MessageService, PaymentService],
+  providers: [
+    BotService,
+    PromoService,
+    StartService,
+    HelpService,
+    MessageService,
+    PaymentService
+  ],
 })
 export class BotModule {}

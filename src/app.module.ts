@@ -1,17 +1,20 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { BotModule } from './bot/bot.module';
 
-
 @Module({
-  imports: [ConfigModule.forRoot({
-    isGlobal: true, // Делаем переменные доступными во всех модулях
-  }), BotModule],
-  controllers: [AppController],
-  providers: [AppService],
+  imports: [
+    TypeOrmModule.forRoot({
+      type: 'mysql',
+      host: '103.195.5.13', // Ваш хост
+      port: 3306,           // Порт MySQL
+      username: 'myuser',   // Логин
+      password: 'mypassword', // Пароль
+      database: 'mydatabase', // Название базы данных
+      entities: [__dirname + '/**/*.entity.{js,ts}'], // Пути к сущностям
+      synchronize: false,   // Синхронизация схемы (поставьте false для production)
+    }),
+    BotModule, // Ваш модуль с логикой бота
+  ],
 })
 export class AppModule {}
-
-
