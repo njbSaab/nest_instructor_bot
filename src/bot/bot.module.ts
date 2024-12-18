@@ -6,6 +6,7 @@ import { PromoService } from './services/promo/promo.service';
 import { StartService } from './services/start/start.service';
 import { HelpService } from './services/help/help.service';
 import { MessageService } from './services/message/message.service';
+import {PaymentService} from "./services/payment/payment.service";
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { MessageService } from './services/message/message.service';
       inject: [ConfigService],
     }),
   ],
-  providers: [BotService, PromoService, StartService, HelpService, MessageService],
+  providers: [BotService, PromoService, StartService, HelpService, MessageService, PaymentService],
 })
 export class BotModule {}
