@@ -35,4 +35,4 @@ export class BotService {
   async onCallbackQuery(ctx: Context) {
     await this.promoService.handleCallbackQuery(ctx);
   }
-}
+} 

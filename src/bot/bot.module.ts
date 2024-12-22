@@ -8,29 +8,28 @@ import { PromoService } from './services/promo/promo.service';
 import { StartService } from './services/start/start.service';
 import { HelpService } from './services/help/help.service';
 import { MessageService } from './services/message/message.service';
-import {PaymentService} from './services/payment/payment.service';
-import { User } from './entities/user.entity';
-import { MenuButton } from './entities/menu-button.entity';
+import { PaymentService } from './services/payment/payment.service';
 import { KeyboardService } from './services/keyboard/keyboard.service';
 
+import { User } from './entities/user.entity';
+import { MenuButton } from './entities/menu-button.entity';
+import { MenuButtonController } from './controllers/menu-button.controller';
 
 @Module({
   imports: [
-    // Подключаем ConfigModule для работы с .env
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    // Настраиваем TelegrafModule с использованием токена из .env
     TelegrafModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        token: configService.get<string>('TEL_TOKEN'), // Получаем токен
+        token: configService.get<string>('TEL_TOKEN'),
       }),
     }),
-    // Подключаем TypeORM и сущность User
-    TypeOrmModule.forFeature([User]),
-    TypeOrmModule.forFeature([User, MenuButton]), // Подключаем сущности User и MenuButton
-
+    TypeOrmModule.forFeature([User, MenuButton]), // Подключаем сущности
+  ],
+  controllers: [
+    MenuButtonController, // Регистрация контроллера
   ],
   providers: [
     BotService,
@@ -39,7 +38,7 @@ import { KeyboardService } from './services/keyboard/keyboard.service';
     HelpService,
     MessageService,
     PaymentService,
-    KeyboardService
+    KeyboardService,
   ],
 })
 export class BotModule {}
