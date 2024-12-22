@@ -4,13 +4,16 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Включение CORS
   app.enableCors({
-    origin: 'http://localhost:4200', // Укажите разрешенный источник
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Разрешенные HTTP-методы
-    credentials: true, // Если требуется отправка cookies
+    origin: [
+      'https://delicate-elf-1d7e34.netlify.app', // Разрешить ваш Netlify-домен
+      'http://localhost:4200',
+      'https://harmonious-starburst-a54901.netlify.app' // (опционально) локальная разработка
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true, // Если нужно передавать куки
   });
 
-  await app.listen(process.env.PORT || 3000);
+  await app.listen(3000);
 }
 bootstrap();

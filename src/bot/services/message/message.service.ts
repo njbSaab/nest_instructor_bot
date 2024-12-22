@@ -50,6 +50,7 @@ export class MessageService {
         }
     }
   }
+
   private async handleMainMenu(ctx: Context, button: MenuButton) {
     console.log('Обрабатываем главное меню для кнопки:', button);
 
@@ -68,6 +69,7 @@ export class MessageService {
         await ctx.reply(button.content || 'Нет дополнительной информации.');
     }
   }
+
   private async handleChildMenu(ctx: Context, button: MenuButton) {
     console.log('Обрабатываем дочернюю кнопку:', button);
 
@@ -82,10 +84,10 @@ export class MessageService {
     // Используем KeyboardService для формирования клавиатуры
     const keyboard = await this.keyboardService.generateKeyboard(button.id);
 
-    // Проверяем условия для добавления кнопки "Назад"
-    if (keyboard.length > 0 && button.parent_id !== 1) {
+    // Добавляем кнопку "Назад", если есть дочерние элементы или это не главное меню
+    if (button.parent_id !== null) {
         console.log('Добавляем кнопку "Назад" в клавиатуру.');
-        keyboard.push([{ text: '🔙 Назад' }]);
+        keyboard.push([{ text: '🔙 Назад' }]); // Добавляем кнопку как отдельную строку
     }
 
     if (keyboard.length > 0) {
@@ -100,7 +102,8 @@ export class MessageService {
         console.log('Нет дочерних кнопок. Показываем только контент.');
         await ctx.reply(button.content || 'Нет дополнительной информации.');
     }
-  }
+}
+
   private async handleBackAction(ctx: Context, button: MenuButton) {
     console.log(`Обрабатываем действие "Назад" для кнопки:`, button);
 

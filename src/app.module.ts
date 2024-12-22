@@ -1,20 +1,29 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BotModule } from './bot/bot.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: 'mysql',
-      host: '103.195.5.13', // Ваш хост
-      port: 3306,           // Порт MySQL
-      username: 'myuser',   // Логин
-      password: 'mypassword', // Пароль
-      database: 'mydatabase', // Название базы данных
-      entities: [__dirname + '/**/*.entity.{js,ts}'], // Пути к сущностям
-      synchronize: false,   // Синхронизация схемы (поставьте false для production)
+    ConfigModule.forRoot({
+      isGlobal: true, // Делаем конфигурацию доступной во всем приложении
     }),
-    BotModule, // Ваш модуль с логикой бота
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'mysql',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        entities: [__dirname + '/**/*.entity.{js,ts}'],
+        synchronize: false,
+        driver: require('mysql2'), 
+      }),
+      inject: [ConfigService],
+    }),
+    BotModule,
   ],
 })
 export class AppModule {}
