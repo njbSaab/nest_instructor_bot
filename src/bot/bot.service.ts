@@ -13,7 +13,7 @@ export class BotService implements OnModuleInit {
     private readonly configService: ConfigService,
     private readonly menuService: MenuService,
     private readonly usersService: UsersService,
-    private readonly greetingBotService: GreetingBotService, // Сервис для приветствия
+    private readonly greetingBotService: GreetingBotService,
   ) {
     const botToken = this.configService.get<string>('TEL_TOKEN');
     if (!botToken) {
@@ -25,40 +25,68 @@ export class BotService implements OnModuleInit {
   async onModuleInit() {
     console.log('[BotService] Инициализация Telegraf...');
 
+    // Обработка команды /start
     this.bot.start(async (ctx) => {
       console.log('[BotService] Получена команда /start');
-    
-      const telegramUser = ctx.from;
-      const user = await this.usersService.findOrCreateUser({
-        id: telegramUser.id,
-        is_bot: telegramUser.is_bot,
-        first_name: telegramUser.first_name,
-        last_name: telegramUser.last_name,
-        username: telegramUser.username,
-        language_code: telegramUser.language_code,
-      });
-    
+      const user = await this.usersService.findOrCreateUser(ctx.from);
       console.log('[BotService] Пользователь добавлен/обновлён:', user);
-    
-      // Получаем все приветствия
+
       const greetings = await this.greetingBotService.getAllGreetings();
-    
-      // Последовательно отправляем приветствия с интервалом
       for (const greeting of greetings) {
-        const personalizedText = greeting.greeting_text.replace(
-          '[Name]',
-          user.first_name || user.username || 'there' // Подставляем имя, никнейм или дефолтный текст
-        );
-    
+        const personalizedText = greeting.greeting_text.replace('[Name]', user.first_name || 'there');
         if (greeting.image_url) {
           await ctx.replyWithPhoto(greeting.image_url, { caption: personalizedText });
         } else {
           await ctx.reply(personalizedText);
         }
-        await new Promise((resolve) => setTimeout(resolve, 2500)); // Интервал 2.5 секунды
+        await new Promise((resolve) => setTimeout(resolve, 2500));
       }
-    
+
       await this.sendMainMenu(ctx);
+    });
+
+    // Обработка текстового ввода (главное меню)
+    this.bot.hears(/.+/, async (ctx) => {
+      const text = ctx.message?.text;
+
+      if (!text) {
+        console.log('[BotService] Сообщение без текста');
+        return;
+      }
+
+      console.log(`[BotService] Получено текстовое сообщение: "${text}"`);
+
+      // Определяем выбранное меню
+      const menus = await this.menuService.getMainMenu();
+      const selectedMenu = menus.find((menu) => menu.name === text);
+
+      if (!selectedMenu) {
+        console.log('[BotService] Меню не найдено для текста:', text);
+        await ctx.reply('Некорректный выбор. Попробуйте снова.');
+        return;
+      }
+
+      console.log(`[BotService] Выбрано меню с ID: ${selectedMenu.id}`);
+
+      // Получаем пост и кнопки для меню
+      const post = await this.menuService.getPostForMenu(selectedMenu.id);
+      const buttons = await this.menuService.getInlineButtonsForMenu(selectedMenu.id);
+
+      if (post) {
+        console.log('[BotService] Пост найден:', post);
+
+        await ctx.reply(post.post_title);
+        await ctx.reply(post.post_content, {
+          reply_markup: {
+            inline_keyboard: buttons.map((button) => [
+              { text: button.name, callback_data: button.id.toString() },
+            ]),
+          },
+        });
+      } else {
+        console.log('[BotService] Пост не найден для menuId:', selectedMenu.id);
+        await ctx.reply('Пост для данного меню не найден.');
+      }
     });
 
     try {
@@ -73,12 +101,16 @@ export class BotService implements OnModuleInit {
     const menus = await this.menuService.getMainMenu();
     console.log('[BotService] Главное меню загружено:', menus);
 
-    const keyboard = menus.map((menu) => [{ text: menu.name }]);
-    await ctx.reply('ボタンを選択👇', {
+    const keyboard = menus.map((menu) => [{ text: menu.name }]); // Создаем кнопки с текстом
+
+    await ctx.reply('Выберите раздел:', {
       reply_markup: {
         keyboard,
-        resize_keyboard: true,
+        resize_keyboard: true, // Размер клавиатуры
+        one_time_keyboard: false, // Убирает клавиатуру после выбора
       },
     });
   }
 }
+
+
