@@ -4,6 +4,7 @@ import { Telegraf } from 'telegraf';
 import { MenuService } from './services/menu.service';
 import { UsersService } from '../users/users.service';
 import { GreetingBotService } from './services/greeting-bot.service';
+import { CallbackQuery } from 'telegraf/typings/core/types/typegram';
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -56,7 +57,6 @@ export class BotService implements OnModuleInit {
 
       console.log(`[BotService] Получено текстовое сообщение: "${text}"`);
 
-      // Определяем выбранное меню
       const menus = await this.menuService.getMainMenu();
       const selectedMenu = menus.find((menu) => menu.name === text);
 
@@ -68,7 +68,6 @@ export class BotService implements OnModuleInit {
 
       console.log(`[BotService] Выбрано меню с ID: ${selectedMenu.id}`);
 
-      // Получаем пост и кнопки для меню
       const post = await this.menuService.getPostForMenu(selectedMenu.id);
       const buttons = await this.menuService.getInlineButtonsForMenu(selectedMenu.id);
 
@@ -89,6 +88,46 @@ export class BotService implements OnModuleInit {
       }
     });
 
+    // Обработка инлайн-кнопок
+    this.bot.on('callback_query', async (ctx) => {
+      const callbackQuery = ctx.callbackQuery as CallbackQuery;
+      const callbackData = (callbackQuery as any).data;
+      
+      if (!callbackData) {
+        console.log('[BotService] Callback без данных');
+        await ctx.answerCbQuery('Некорректные данные');
+        return;
+      }
+
+      const buttonId = parseInt(callbackData, 10);
+
+      if (isNaN(buttonId)) {
+        console.log('[BotService] Некорректный buttonId');
+        await ctx.answerCbQuery('Некорректные данные');
+        return;
+      }
+
+      console.log(`[BotService] Нажата кнопка с ID: ${buttonId}`);
+
+      const button = await this.menuService.getButtonById(buttonId);
+      if (button) {
+        console.log('[BotService] Кнопка найдена:', button);
+
+        if (button.response_type === 'text' && button.response_text) {
+          await ctx.reply(button.response_text);
+        } else if (button.response_type === 'image' && button.response_image_url) {
+          await ctx.replyWithPhoto(button.response_image_url);
+        } else {
+          await ctx.reply('Ответ на кнопку не настроен.');
+        }
+      } else {
+        console.log('[BotService] Кнопка не найдена для buttonId:', buttonId);
+        await ctx.reply('Действие для кнопки не найдено.');
+      }
+
+      await ctx.answerCbQuery();
+    });
+
     try {
       await this.bot.launch();
       console.log('[BotService] Бот успешно запущен и ожидает команды.');
@@ -101,13 +140,13 @@ export class BotService implements OnModuleInit {
     const menus = await this.menuService.getMainMenu();
     console.log('[BotService] Главное меню загружено:', menus);
 
-    const keyboard = menus.map((menu) => [{ text: menu.name }]); // Создаем кнопки с текстом
+    const keyboard = menus.map((menu) => [{ text: menu.name }]);
 
     await ctx.reply('Выберите раздел:', {
       reply_markup: {
         keyboard,
-        resize_keyboard: true, // Размер клавиатуры
-        one_time_keyboard: false, // Убирает клавиатуру после выбора
+        resize_keyboard: true,
+        one_time_keyboard: false,
       },
     });
   }

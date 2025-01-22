@@ -45,4 +45,9 @@ export class MenuService {
     console.log('[MenuService] Найдены кнопки:', buttons);
     return buttons;
   }
+  async getButtonById(buttonId: number): Promise<MenuButton | null> {
+    const button = await this.menuButtonRepository.findOne({ where: { id: buttonId } });
+    console.log(`[MenuService] Найдена кнопка с ID=${buttonId}:`, button);
+    return button;
+  }
 }
