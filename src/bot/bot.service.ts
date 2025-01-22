@@ -27,7 +27,7 @@ export class BotService implements OnModuleInit {
 
     this.bot.start(async (ctx) => {
       console.log('[BotService] Получена команда /start');
-
+    
       const telegramUser = ctx.from;
       const user = await this.usersService.findOrCreateUser({
         id: telegramUser.id,
@@ -37,18 +37,27 @@ export class BotService implements OnModuleInit {
         username: telegramUser.username,
         language_code: telegramUser.language_code,
       });
-
+    
       console.log('[BotService] Пользователь добавлен/обновлён:', user);
-
-      // Получаем приветственное сообщение
-      const greeting = await this.greetingBotService.getGreeting();
-
-      if (greeting.image_url) {
-        await ctx.replyWithPhoto(greeting.image_url, { caption: greeting.greeting_text });
-      } else {
-        await ctx.reply(greeting.greeting_text);
+    
+      // Получаем все приветствия
+      const greetings = await this.greetingBotService.getAllGreetings();
+    
+      // Последовательно отправляем приветствия с интервалом
+      for (const greeting of greetings) {
+        const personalizedText = greeting.greeting_text.replace(
+          '[Name]',
+          user.first_name || user.username || 'there' // Подставляем имя, никнейм или дефолтный текст
+        );
+    
+        if (greeting.image_url) {
+          await ctx.replyWithPhoto(greeting.image_url, { caption: personalizedText });
+        } else {
+          await ctx.reply(personalizedText);
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2500)); // Интервал 2.5 секунды
       }
-
+    
       await this.sendMainMenu(ctx);
     });
 
@@ -65,7 +74,7 @@ export class BotService implements OnModuleInit {
     console.log('[BotService] Главное меню загружено:', menus);
 
     const keyboard = menus.map((menu) => [{ text: menu.name }]);
-    await ctx.reply('Выберите раздел:', {
+    await ctx.reply('ボタンを選択👇', {
       reply_markup: {
         keyboard,
         resize_keyboard: true,

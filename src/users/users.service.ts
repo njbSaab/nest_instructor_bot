@@ -20,7 +20,16 @@ export class UsersService {
     } else {
       console.log('[UsersService] Пользователь найден:', user);
     }
-
     return user;
+  }
+  async updateUserState(userId: number, newState: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+  
+    user.state = newState;
+    return this.userRepository.save(user);
   }
 }

@@ -13,14 +13,18 @@ export class GreetingBotService {
   // Получить последнее приветствие
   async getGreeting(): Promise<GreetingBot> {
     const greeting = await this.greetingBotRepository.findOne({
-      where: {}, // Указываем пустое условие, чтобы выбрать первую запись
       order: { id: 'DESC' }, // Последняя запись
     });
-  
     if (!greeting) {
       throw new Error('Приветственное сообщение не найдено.');
     }
-  
     return greeting;
+  }
+
+  // Новый метод: Получить все приветствия
+  async getAllGreetings(): Promise<GreetingBot[]> {
+    return await this.greetingBotRepository.find({
+      order: { id: 'ASC' }, // Последовательность по ID
+    });
   }
 }
