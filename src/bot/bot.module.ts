@@ -1,44 +1,23 @@
 import { Module } from '@nestjs/common';
-import { TelegrafModule } from 'nestjs-telegraf';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-
-import { BotService } from './services/bot.service';
-import { PromoService } from './services/promo/promo.service';
-import { StartService } from './services/start/start.service';
-import { HelpService } from './services/help/help.service';
-import { MessageService } from './services/message/message.service';
-import { PaymentService } from './services/payment/payment.service';
-import { KeyboardService } from './services/keyboard/keyboard.service';
-
-import { User } from './entities/user.entity';
-import { MenuButton } from './entities/menu-button.entity';
-import { MenuButtonController } from './controllers/menu-button.controller';
+import { BotService } from './bot.service';
+import { MenuController } from './controllers/menu.controller';
+import { MenuService } from './services/menu.service';
+import { MenuTable } from '../entities/menu-tables.entity';
+import { MenuButton } from '../entities/menu-button.entity';
+import { UsersModule } from '../users/users.module';
+import { GreetingBotService } from './services/greeting-bot.service';
+import { GreetingBot } from '../entities/greeting-bot.entity';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-    }),
-    TelegrafModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        token: configService.get<string>('TEL_TOKEN'),
-      }),
-    }),
-    TypeOrmModule.forFeature([User, MenuButton]), // Подключаем сущности
+    ConfigModule.forRoot({ isGlobal: true }), // Глобальная конфигурация
+    TypeOrmModule.forFeature([MenuTable, MenuButton, GreetingBot]), // Подключение сущностей
+    UsersModule,
   ],
-  controllers: [
-    MenuButtonController, // Регистрация контроллера
-  ],
-  providers: [
-    BotService,
-    PromoService,
-    StartService,
-    HelpService,
-    MessageService,
-    PaymentService,
-    KeyboardService,
-  ],
+  controllers: [MenuController],
+  providers: [BotService, MenuService, GreetingBotService],
+  exports: [GreetingBotService], // Экспортируем, если используется в других модулях
 })
 export class BotModule {}

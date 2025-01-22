@@ -1,19 +1,24 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { config } from 'dotenv';
+
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  config();
+  console.log('[NestApplication] Инициализация приложения...');
+  
   app.enableCors({
     origin: [
-      'https://delicate-elf-1d7e34.netlify.app', // Разрешить ваш Netlify-домен
       'http://localhost:4200',
-      'https://harmonious-starburst-a54901.netlify.app' // (опционально) локальная разработка
+      'https://astonishing-biscochitos-1d05c8.netlify.app',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true, // Если нужно передавать куки
   });
 
-  await app.listen(3000);
+  const PORT = process.env.PORT || 3000;
+  await app.listen(PORT);
+  console.log(`[NestApplication] Приложение запущено на http://localhost:${PORT}`);
 }
 bootstrap();

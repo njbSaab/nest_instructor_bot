@@ -1,12 +1,15 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BotModule } from './bot/bot.module';
+import { DatabaseModule } from './database/database.module';
+import { UsersModule } from './users/users.module';
+
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      isGlobal: true, // Делаем конфигурацию доступной во всем приложении
+      isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -18,12 +21,18 @@ import { BotModule } from './bot/bot.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity.{js,ts}'],
-        synchronize: false,
-        driver: require('mysql2'), 
+        synchronize: true, // Включаем для автоматического создания таблиц
+        driver: require('mysql2'),
       }),
       inject: [ConfigService],
     }),
+    DatabaseModule,
     BotModule,
+    UsersModule
   ],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  onModuleInit() {
+    console.log('[AppModule] Все модули инициализированы успешно.');
+  }
+}
