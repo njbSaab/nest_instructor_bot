@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { MenuTable } from '../../entities/menu-tables.entity';
 import { MenuButton } from '../../entities/menu-button.entity';
 import { MenuPost } from '../../entities/menu-posts.entity';
+import { Not, IsNull } from 'typeorm';
 
 @Injectable()
 export class MenuService {
@@ -16,38 +17,42 @@ export class MenuService {
     private readonly menuPostRepository: Repository<MenuPost>, // Исправляем здесь
   ) {}
 
-  async getButtonsForMenu(menuId: number): Promise<MenuButton[]> {
-    return this.menuButtonRepository.find({
-      where: { menu: { id: menuId } },
+  async getMainMenu(): Promise<MenuTable[]> {
+    const menus = await this.menuTableRepository.find({
+      relations: ['linked_post'],
       order: { order: 'ASC' },
     });
-  }
-
-  async getMainMenu(): Promise<MenuTable[]> {
-    const menus = await this.menuTableRepository.find({ order: { order: 'ASC' } });
-    console.log('[MenuService] Главное меню:', menus);
+    console.log('[MenuService] Загружено главное меню:', menus);
     return menus;
   }
   
-  async getPostForMenu(menuId: number): Promise<MenuPost | null> {
-    console.log(`[MenuService] Ищем пост для menuId: ${menuId}`);
-    const post = await this.menuPostRepository.findOne({ where: { menuId } });
-    console.log('[MenuService] Найден пост:', post);
+  async getButtonsForPost(postId: number): Promise<MenuButton[]> {
+    const buttons = await this.menuButtonRepository.find({
+      where: { post: { id: postId } },
+      relations: ['post'],
+      order: { order: 'ASC' },
+    });
+    console.log(`[MenuService] Кнопки для поста с ID=${postId}:`, buttons);
+    return buttons;
+  }
+  
+  async getPostById(postId: number): Promise<MenuPost | null> {
+    const post = await this.menuPostRepository.findOne({
+      where: { id: postId },
+      relations: ['next_post', 'parent_menu'],
+    });
+    console.log(`[MenuService] Пост с ID=${postId}:`, post);
     return post;
   }
 
-  async getInlineButtonsForMenu(menuId: number): Promise<MenuButton[]> {
-    console.log(`[MenuService] Ищем inline-кнопки для menuId: ${menuId}`);
-    const buttons = await this.menuButtonRepository.find({
-      where: { menu: { id: menuId }, type: 'inline' },
-      order: { order: 'ASC' },
-    });
-    console.log('[MenuService] Найдены кнопки:', buttons);
-    return buttons;
-  }
   async getButtonById(buttonId: number): Promise<MenuButton | null> {
-    const button = await this.menuButtonRepository.findOne({ where: { id: buttonId } });
-    console.log(`[MenuService] Найдена кнопка с ID=${buttonId}:`, button);
+    console.log(`[MenuService] Ищем кнопку с ID: ${buttonId}`);
+    const button = await this.menuButtonRepository.findOne({
+      where: { id: buttonId },
+      relations: ['post', 'next_post'], // Подгружаем связанные посты, если они есть
+    });
+    console.log(`[MenuService] Найдена кнопка:`, button);
     return button;
   }
+
 }
