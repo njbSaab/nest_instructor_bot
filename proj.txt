@@ -113,3 +113,14 @@ id	menu_id	name	type	content	url	response_type	response_text	response_image_url
 1	1	🎁 Bonuses	inline	Эксклюзивные бонусы	http://example.com	text_and_image	"Вот ваши бонусы!"	http://example.com/bonus.jpg
 2	1	🔄 Spins	inline	Бесплатные спины	NULL	image	NULL	http://example.com/spins.jpg
 3	2	⚽ Sport	keyboard	Новости спорта	NULL	text	"Вот последние новости спорта..."	NULL
+
+
+
+
+
+
+
+
+
+
+

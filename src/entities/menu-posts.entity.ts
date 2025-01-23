@@ -6,9 +6,10 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
-import { MenuButton } from './menu-button.entity';
 import { MenuTable } from './menu-tables.entity';
+import { MenuPostButton } from './menu-post-button.entity';
 
 @Entity('menu_posts')
 export class MenuPost {
@@ -24,10 +25,6 @@ export class MenuPost {
   @Column({ type: 'varchar', length: 255, nullable: true })
   post_image_url: string;
 
-  @ManyToOne(() => MenuButton, { nullable: true, onDelete: 'SET NULL' })
-  @JoinColumn({ name: 'parentButtonId' })
-  parent_button: MenuButton;
-
   @ManyToOne(() => MenuPost, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'nextPostId' })
   next_post: MenuPost;
@@ -35,6 +32,9 @@ export class MenuPost {
   @ManyToOne(() => MenuTable, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'parentMenuId' })
   parent_menu: MenuTable;
+
+  @OneToMany(() => MenuPostButton, (postButton) => postButton.post, { cascade: true })
+  buttons: MenuPostButton[];
 
   @CreateDateColumn()
   created_at: Date;

@@ -83,48 +83,54 @@ export class BotService implements OnModuleInit {
     });
 
     // Обработка инлайн-кнопок
-    this.bot.on('callback_query', async (ctx) => {
-      const callbackQuery = ctx.callbackQuery as CallbackQuery;
-      const callbackData = (callbackQuery as any).data;
-    
-      if (!callbackData) {
-        console.log('[BotService] Callback без данных');
-        await ctx.answerCbQuery('Некорректные данные');
-        return;
-      }
-    
-      const buttonId = parseInt(callbackData, 10);
-    
-      if (isNaN(buttonId)) {
-        console.log('[BotService] Некорректный buttonId');
-        await ctx.answerCbQuery('Некорректные данные');
-        return;
-      }
-    
-      console.log(`[BotService] Нажата кнопка с ID: ${buttonId}`);
-    
-      const button = await this.menuService.getButtonById(buttonId);
-    
-      if (!button) {
-        console.log('[BotService] Кнопка не найдена:', buttonId);
-        await ctx.reply('Действие для кнопки не найдено.');
-        await ctx.answerCbQuery();
-        return;
-      }
-    
-      if (button.post) { // Используем правильное свойство
-        console.log(`[BotService] Кнопка вызывает пост с ID: ${button.post.id}`);
-        await this.handlePost(ctx, button.post.id);
-      } else if (button.url) {
-        console.log(`[BotService] Кнопка-ссылка: ${button.url}`);
-        await ctx.reply(`Откройте ссылку: ${button.url}`);
-      } else {
-        console.log('[BotService] Кнопка без действия.');
-        await ctx.reply('Действие для кнопки не настроено.');
-      }
-    
-      await ctx.answerCbQuery();
-    });
+// Обработка инлайн-кнопок
+this.bot.on('callback_query', async (ctx) => {
+  const callbackQuery = ctx.callbackQuery as CallbackQuery;
+  const callbackData = (callbackQuery as any).data;
+
+  if (!callbackData) {
+    console.log('[BotService] Callback без данных');
+    await ctx.answerCbQuery('Некорректные данные');
+    return;
+  }
+
+  const buttonId = parseInt(callbackData, 10);
+
+  if (isNaN(buttonId)) {
+    console.log('[BotService] Некорректный buttonId');
+    await ctx.answerCbQuery('Некорректные данные');
+    return;
+  }
+
+  console.log(`[BotService] Нажата кнопка с ID: ${buttonId}`);
+
+  // Получаем кнопку по ID
+  const button = await this.menuService.getButtonById(buttonId);
+
+  if (!button) {
+    console.log('[BotService] Кнопка не найдена:', buttonId);
+    await ctx.reply('Действие для кнопки не найдено.');
+    await ctx.answerCbQuery();
+    return;
+  }
+
+  // Проверяем, связана ли кнопка с постом
+  const post = await this.menuService.getPostByButtonId(buttonId);
+  if (post) {
+    console.log(`[BotService] Кнопка вызывает пост с ID: ${post.id}`);
+    await this.handlePost(ctx, post.id);
+  } else if (button.url) {
+    // Если кнопка связана с URL, отправляем ссылку
+    console.log(`[BotService] Кнопка-ссылка: ${button.url}`);
+    await ctx.reply(`Откройте ссылку: ${button.url}`);
+  } else {
+    // Если кнопка не связана ни с постом, ни с URL
+    console.log('[BotService] Кнопка без действия.');
+    await ctx.reply('Действие для кнопки не настроено.');
+  }
+
+  await ctx.answerCbQuery();
+});
 
     try {
       await this.bot.launch();
@@ -148,6 +154,7 @@ export class BotService implements OnModuleInit {
       },
     });
   }
+  
   private async handlePost(ctx: any, postId: number) {
     console.log(`[BotService] Обрабатываем пост с ID: ${postId}`);
   
@@ -161,46 +168,58 @@ export class BotService implements OnModuleInit {
       return;
     }
   
-    // Формируем текст сообщения
-    let messageText = '';
-    if (post.post_title) messageText += `${post.post_title}\n\n`;
-    if (post.post_content) messageText += `${post.post_content}`;
-  
-    // Проверяем, есть ли изображение, и отправляем сообщение с фото
-    if (post.post_image_url) {
-      console.log(`[BotService] Отправляем изображение для поста с ID=${postId}`);
-      await ctx.replyWithPhoto(post.post_image_url, {
-        caption: messageText || post.post_title || '',
-      });
-    } else if (messageText.trim().length > 0) {
-      // Если изображения нет, но есть текст
-      await ctx.reply(messageText.trim());
-    } else {
-      console.log('[BotService] Пост не содержит текста или изображения.');
-      await ctx.reply('Пост не содержит контента.');
-    }
-  
-    // Загружаем кнопки для текущего поста
+    // Получаем кнопки для поста
     const buttons = await this.menuService.getButtonsForPost(post.id);
     console.log('[MenuService] Кнопки для поста:', buttons);
   
-    if (buttons.length > 0) {
-      console.log(`[BotService] Отправляем кнопки для поста с ID=${postId}`);
-      // Отправляем кнопки
-      await ctx.reply('Выберите действие:', {
-        reply_markup: {
-          inline_keyboard: buttons.map((button) => [
-            { text: button.name, callback_data: button.id.toString() },
-          ]),
-        },
+    // Формируем текст сообщения
+    let messageText = '';
+    if (post.post_content) messageText += `${post.post_content}\n\n`;
+  
+    // Отправляем изображение или текст
+    if (post.post_image_url) {
+      console.log(`[BotService] Отправляем изображение с кнопками для поста ID=${post.id}`);
+      await ctx.replyWithPhoto(post.post_image_url, {
+        caption: messageText || '',
+        reply_markup: buttons.length
+          ? {
+              inline_keyboard: buttons.map((button) => [
+                { text: button.name, callback_data: button.id.toString() },
+              ]),
+            }
+          : undefined,
       });
-    } else if (post.next_post) {
-      // Если кнопок нет, но есть следующий пост
-      console.log(`[BotService] Переходим к следующему посту с ID: ${post.next_post.id}`);
+    } else if (messageText.trim().length > 0) {
+      console.log(`[BotService] Отправляем текст с кнопками для поста ID=${post.id}`);
+      await ctx.reply(messageText.trim(), {
+        reply_markup: buttons.length
+          ? {
+              inline_keyboard: buttons.map((button) => [
+                { text: button.name, callback_data: button.id.toString() },
+              ]),
+            }
+          : undefined,
+      });
+    } else {
+      // Если нет контента, только кнопки
+      console.log('[BotService] Пост без контента. Отправляем только кнопки.');
+      if (buttons.length > 0) {
+        await ctx.reply('Выберите действие:', {
+          reply_markup: {
+            inline_keyboard: buttons.map((button) => [
+              { text: button.name, callback_data: button.id.toString() },
+            ]),
+          },
+        });
+      }
+    }
+  
+    // Переход к следующему посту, если он есть
+    if (post.next_post) {
+      console.log(`[BotService] Переходим к следующему посту с ID=${post.next_post.id}`);
       await this.handlePost(ctx, post.next_post.id);
     } else {
-      console.log('[BotService] Нет доступных кнопок или следующих постов.');
-      await ctx.reply('Нет доступных кнопок или следующих постов.');
+      console.log('[BotService] Следующего поста нет.');
     }
   }
 }

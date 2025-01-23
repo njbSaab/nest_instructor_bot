@@ -10,11 +10,12 @@ import { UsersModule } from '../users/users.module';
 import { GreetingBotService } from './services/greeting-bot.service';
 import { GreetingBot } from '../entities/greeting-bot.entity';
 import { MenuPost } from '../entities/menu-posts.entity';
+import { MenuPostButton } from '../entities/menu-post-button.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), // Глобальная конфигурация
-    TypeOrmModule.forFeature([MenuTable, MenuButton, MenuPost, GreetingBot]), // Подключение сущностей
+    TypeOrmModule.forFeature([MenuTable, MenuButton, MenuPost, GreetingBot, MenuPostButton]), // Подключение сущностей
     UsersModule,
   ],
   controllers: [MenuController],
