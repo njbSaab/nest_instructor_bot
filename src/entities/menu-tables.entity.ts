@@ -26,6 +26,9 @@ export class MenuTable {
   @Column({ type: 'int', nullable: true })
   parentId: number;
 
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
+
   @ManyToOne(() => MenuPost, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'linkedPostId' })
   linked_post: MenuPost;

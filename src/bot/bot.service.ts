@@ -26,111 +26,9 @@ export class BotService implements OnModuleInit {
   async onModuleInit() {
     console.log('[BotService] Инициализация Telegraf...');
 
-    // Обработка команды /start
-    this.bot.start(async (ctx) => {
-      console.log('[BotService] Получена команда /start');
-      const user = await this.usersService.findOrCreateUser(ctx.from);
-      console.log('[BotService] Пользователь добавлен/обновлён:', user);
-
-      const greetings = await this.greetingBotService.getAllGreetings();
-      for (const greeting of greetings) {
-        const personalizedText = greeting.greeting_text.replace('[Name]', user.first_name || 'there');
-        if (greeting.image_url) {
-          await ctx.replyWithPhoto(greeting.image_url, { caption: personalizedText });
-        } else {
-          await ctx.reply(personalizedText);
-        }
-        await new Promise((resolve) => setTimeout(resolve, 2500));
-      }
-
-      await this.sendMainMenu(ctx);
-    });
-
-    // Обработка текстового ввода (главное меню)
-    this.bot.hears(/.+/, async (ctx) => {
-      const text = ctx.message?.text;
-    
-      if (!text) {
-        console.log('[BotService] Сообщение без текста');
-        return;
-      }
-    
-      console.log(`[BotService] Получено текстовое сообщение: "${text}"`);
-    
-      const menus = await this.menuService.getMainMenu();
-      console.log('[MenuService] Главное меню:', menus);
-    
-      const selectedMenu = menus.find((menu) => menu.name === text);
-    
-      if (!selectedMenu) {
-        console.log('[BotService] Меню не найдено для текста:', text);
-        await ctx.reply('Некорректный выбор. Попробуйте снова.');
-        return;
-      }
-    
-      console.log(`[BotService] Выбрано меню с ID: ${selectedMenu.id}`);
-      console.log('[BotService] Связанный пост:', selectedMenu.linked_post);
-    
-      if (selectedMenu.linked_post) {
-        console.log(
-          `[BotService] Переходим к связанному посту с ID: ${selectedMenu.linked_post.id}`
-        );
-        await this.handlePost(ctx, selectedMenu.linked_post.id);
-      } else {
-        console.log('[BotService] Нет связанных постов для выбранного меню');
-        await ctx.reply('Нет связанных постов для этого раздела.');
-      }
-    });
-
-    // Обработка инлайн-кнопок
-// Обработка инлайн-кнопок
-this.bot.on('callback_query', async (ctx) => {
-  const callbackQuery = ctx.callbackQuery as CallbackQuery;
-  const callbackData = (callbackQuery as any).data;
-
-  if (!callbackData) {
-    console.log('[BotService] Callback без данных');
-    await ctx.answerCbQuery('Некорректные данные');
-    return;
-  }
-
-  const buttonId = parseInt(callbackData, 10);
-
-  if (isNaN(buttonId)) {
-    console.log('[BotService] Некорректный buttonId');
-    await ctx.answerCbQuery('Некорректные данные');
-    return;
-  }
-
-  console.log(`[BotService] Нажата кнопка с ID: ${buttonId}`);
-
-  // Получаем кнопку по ID
-  const button = await this.menuService.getButtonById(buttonId);
-
-  if (!button) {
-    console.log('[BotService] Кнопка не найдена:', buttonId);
-    await ctx.reply('Действие для кнопки не найдено.');
-    await ctx.answerCbQuery();
-    return;
-  }
-
-  // Проверяем, связана ли кнопка с постом
-  const post = await this.menuService.getPostByButtonId(buttonId);
-  if (post) {
-    console.log(`[BotService] Кнопка вызывает пост с ID: ${post.id}`);
-    await this.handlePost(ctx, post.id);
-  } else if (button.url) {
-    // Если кнопка связана с URL, отправляем ссылку
-    console.log(`[BotService] Кнопка-ссылка: ${button.url}`);
-    await ctx.reply(`Откройте ссылку: ${button.url}`);
-  } else {
-    // Если кнопка не связана ни с постом, ни с URL
-    console.log('[BotService] Кнопка без действия.');
-    await ctx.reply('Действие для кнопки не настроено.');
-  }
-
-  await ctx.answerCbQuery();
-});
+    this.bot.start((ctx) => this.handleStartCommand(ctx));
+    this.bot.hears(/.+/, (ctx) => this.handleTextMessage(ctx));
+    this.bot.on('callback_query', (ctx) => this.handleCallbackQuery(ctx));
 
     try {
       await this.bot.launch();
@@ -140,88 +38,212 @@ this.bot.on('callback_query', async (ctx) => {
     }
   }
 
-  private async sendMainMenu(ctx: any) {
-    const menus = await this.menuService.getMainMenu();
-    console.log('[BotService] Главное меню загружено:', menus);
+  /**
+   * Обработка команды /start
+   */
+  private async handleStartCommand(ctx: any) {
+    console.log('[BotService] Получена команда /start');
+    const user = await this.usersService.findOrCreateUser(ctx.from);
+    console.log('[BotService] Пользователь добавлен/обновлён:', user);
 
-    const keyboard = menus.map((menu) => [{ text: menu.name }]);
+    const greetings = await this.greetingBotService.getAllGreetings();
+    for (const greeting of greetings) {
+      const personalizedText = greeting.greeting_text.replace('[Name]', user.first_name || 'there');
+      if (greeting.image_url) {
+        await ctx.replyWithPhoto(greeting.image_url, { caption: personalizedText });
+      } else {
+        await ctx.reply(personalizedText);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
 
-    await ctx.reply('ボタンを選択👇', {
-      reply_markup: {
-        keyboard,
-        resize_keyboard: true,
-        one_time_keyboard: false,
-      },
-    });
+    await this.sendMainMenu(ctx);
   }
+
+  /**
+   * Обработка текстового сообщения
+   */
+  private async handleTextMessage(ctx: any) {
+    const text = ctx.message?.text;
+    if (!text) {
+      console.log('[BotService] Сообщение без текста');
+      return;
+    }
+
+    console.log(`[BotService] Получено текстовое сообщение: "${text}"`);
+
+    // Если пользователь нажал "⬅️ Назад"
+    if (text === '⬅️ Назад') {
+      const userId = ctx.from.id;
+      const lastMenu = await this.menuService.getLastMenu(userId);
+
+      if (lastMenu?.parentId) {
+        console.log(`[BotService] Возвращаемся к родительскому меню с ID: ${lastMenu.parentId}`);
+        const parentMenu = await this.menuService.getMenuById(lastMenu.parentId);
+
+        if (parentMenu) {
+          const subMenus = await this.menuService.getSubMenusByParentId(parentMenu.id);
+          const keyboard = subMenus.map((submenu) => [{ text: submenu.name }]);
+          keyboard.push([{ text: '⬅️ Назад' }]); // Добавляем кнопку "Назад"
+
+          await ctx.reply('ボタンを選択👇', {
+            reply_markup: {
+              keyboard,
+              resize_keyboard: true,
+            },
+          });
+
+          await this.menuService.setLastMenu(userId, parentMenu.id); // Обновляем состояние пользователя
+          return;
+        }
+      }
+
+      console.log('[BotService] Нет родительского меню для возврата.');
+      await this.sendMainMenu(ctx); // Возвращаемся в главное меню, если родительского меню нет
+      return;
+    }
+
+    // Получаем главное меню
+    const menus = await this.menuService.getMainMenu();
+    const selectedMenu = menus.find((menu) => menu.name === text);
+
+    if (!selectedMenu) {
+      console.log('[BotService] Меню не найдено для текста:', text);
+      await ctx.reply('Некорректный выбор. Попробуйте снова.');
+      return;
+    }
+
+    console.log(`[BotService] Выбрано меню с ID: ${selectedMenu.id}`);
+
+    const subMenus = await this.menuService.getSubMenusByParentId(selectedMenu.id);
+
+    if (subMenus.length > 0) {
+      console.log(`[BotService] Меню имеет подменю:`, subMenus);
+      const keyboard = subMenus.map((submenu) => [{ text: submenu.name }]);
+      keyboard.push([{ text: '⬅️ Назад' }]); // Добавляем кнопку "Назад"
+
+      await ctx.reply('ボタンを選択👇', {
+        reply_markup: {
+          keyboard,
+          resize_keyboard: true,
+        },
+      });
+
+      const userId = ctx.from.id;
+      await this.menuService.setLastMenu(userId, selectedMenu.id); // Сохраняем состояние пользователя
+    } else if (selectedMenu.linked_post) {
+      console.log(`[BotService] Переходим к связанному посту с ID: ${selectedMenu.linked_post.id}`);
+      await this.handlePost(ctx, selectedMenu.linked_post.id);
+    } else {
+      await ctx.reply('Нет связанных данных для этого меню.');
+    }
+  }
+  /**
+   * Обработка инлайн-кнопок
+   */
+  private async handleCallbackQuery(ctx: any) {
+    const callbackQuery = ctx.callbackQuery as CallbackQuery;
+    const callbackData = (callbackQuery as any).data;
   
-  private async handlePost(ctx: any, postId: number) {
-    console.log(`[BotService] Обрабатываем пост с ID: ${postId}`);
-  
-    // Получаем пост
-    const post = await this.menuService.getPostById(postId);
-    console.log('[MenuService] Полученный пост:', post);
-  
-    if (!post) {
-      console.log('[BotService] Пост не найден:', postId);
-      await ctx.reply('Пост не найден.');
+    if (!callbackData) {
+      console.log('[BotService] Callback без данных');
+      await ctx.answerCbQuery('Некорректные данные');
       return;
     }
   
-    // Получаем кнопки для поста
-    const buttons = await this.menuService.getButtonsForPost(post.id);
-    console.log('[MenuService] Кнопки для поста:', buttons);
+    const menuId = parseInt(callbackData, 10);
+    console.log(`[BotService] Нажата кнопка с ID: ${menuId}`);
   
-    // Формируем текст сообщения
-    let messageText = '';
-    if (post.post_content) messageText += `${post.post_content}\n\n`;
-  
-    // Отправляем изображение или текст
-    if (post.post_image_url) {
-      console.log(`[BotService] Отправляем изображение с кнопками для поста ID=${post.id}`);
-      await ctx.replyWithPhoto(post.post_image_url, {
-        caption: messageText || '',
-        reply_markup: buttons.length
-          ? {
-              inline_keyboard: buttons.map((button) => [
-                { text: button.name, callback_data: button.id.toString() },
-              ]),
-            }
-          : undefined,
-      });
-    } else if (messageText.trim().length > 0) {
-      console.log(`[BotService] Отправляем текст с кнопками для поста ID=${post.id}`);
-      await ctx.reply(messageText.trim(), {
-        reply_markup: buttons.length
-          ? {
-              inline_keyboard: buttons.map((button) => [
-                { text: button.name, callback_data: button.id.toString() },
-              ]),
-            }
-          : undefined,
-      });
-    } else {
-      // Если нет контента, только кнопки
-      console.log('[BotService] Пост без контента. Отправляем только кнопки.');
-      if (buttons.length > 0) {
-        await ctx.reply('Выберите действие:', {
-          reply_markup: {
-            inline_keyboard: buttons.map((button) => [
-              { text: button.name, callback_data: button.id.toString() },
-            ]),
-          },
-        });
-      }
+    if (isNaN(menuId)) {
+      console.log('[BotService] Некорректный menuId');
+      await ctx.answerCbQuery('Некорректные данные');
+      return;
     }
   
-    // Переход к следующему посту, если он есть
-    if (post.next_post) {
-      console.log(`[BotService] Переходим к следующему посту с ID=${post.next_post.id}`);
-      await this.handlePost(ctx, post.next_post.id);
+    const menu = await this.menuService.getMenuById(menuId);
+    if (!menu) {
+      console.log(`[BotService] Меню с ID=${menuId} не найдено.`);
+      await ctx.reply('Меню не найдено.');
+      await ctx.answerCbQuery();
+      return;
+    }
+  
+    const subMenus = await this.menuService.getSubMenusByParentId(menuId);
+    const keyboard = subMenus.map((submenu) => [
+      { text: submenu.name, callback_data: submenu.id.toString() },
+    ]);
+  
+    // Если это не главное меню, добавляем кнопку "Назад"
+    if (menu.parentId !== null) {
+      console.log(`[BotService] Добавляем кнопку "Назад" для parentId=${menu.parentId}`);
+      keyboard.push([{ text: '⬅️ Назад', callback_data: menu.parentId.toString() }]);
+    }
+  
+    if (subMenus.length > 0) {
+      console.log('[BotService] Отображаем подменю:', keyboard);
+      await ctx.reply('Выберите вариант:', {
+        reply_markup: { inline_keyboard: keyboard },
+      });
+      await ctx.answerCbQuery();
+      return;
+    }
+  
+    if (menu.linked_post) {
+      console.log(`[BotService] Кнопка вызывает пост с ID: ${menu.linked_post.id}`);
+      await this.handlePost(ctx, menu.linked_post.id);
+      await ctx.answerCbQuery();
+      return;
+    }
+  
+    console.log('[BotService] Нет данных для отображения.');
+    await ctx.reply('Нет данных для отображения.');
+    await ctx.answerCbQuery();
+  }
+
+  /**
+   * Логика обработки поста
+   */
+  private async handlePost(ctx: any, postId: number) {
+    console.log(`[BotService] Обрабатываем пост с ID: ${postId}`);
+    const post = await this.menuService.getPostById(postId);
+    if (!post) {
+      await ctx.reply('Пост не найден.');
+      return;
+    }
+
+    const buttons = await this.menuService.getButtonsForPost(post.id);
+    let messageText = post.post_content || '';
+
+    if (post.post_image_url) {
+      await ctx.replyWithPhoto(post.post_image_url, {
+        caption: messageText,
+        reply_markup: buttons.length
+          ? { inline_keyboard: buttons.map((button) => [{ text: button.name, callback_data: button.id.toString() }]) }
+          : undefined,
+      });
     } else {
-      console.log('[BotService] Следующего поста нет.');
+      await ctx.reply(messageText, {
+        reply_markup: buttons.length
+          ? { inline_keyboard: buttons.map((button) => [{ text: button.name, callback_data: button.id.toString() }]) }
+          : undefined,
+      });
+    }
+
+    if (post.next_post) {
+      await this.handlePost(ctx, post.next_post.id);
     }
   }
-}
 
+  /*
+  * Отправка главного меню с возможностью фильтрации по parentId
+  */
+  private async sendMainMenu(ctx: any, parentId?: number) {
+    const menus = await this.menuService.getMainMenu();
+    const keyboard = menus.map((menu) => [{ text: menu.name }]);
+
+    await ctx.reply('ボタンを選択👇', {
+      reply_markup: { keyboard, resize_keyboard: true, one_time_keyboard: false },
+    });
+  }
+}
 

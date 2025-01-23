@@ -11,7 +11,7 @@ export class MenuController {
     console.log('[MenuController] Команда /start получена.');
     
     const menus = await this.menuService.getMainMenu();
-    console.log('[MenuController] Главное меню загружено:', menus);
+    // console.log('[MenuController] Главное меню загружено:', menus);
   
     const keyboard = menus.map((menu) => [{ text: menu.name }]);
   

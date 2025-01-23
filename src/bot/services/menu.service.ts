@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { MenuTable } from '../../entities/menu-tables.entity';
 import { MenuButton } from '../../entities/menu-button.entity';
 import { MenuPost } from '../../entities/menu-posts.entity';
@@ -19,16 +19,20 @@ export class MenuService {
     private readonly menuPostButtonRepository: Repository<MenuPostButton>, // Новая таблица связей
   ) {}
 
-  // Получение главного меню
+  // Получение главного меню с возможностью фильтрации по parentId
   async getMainMenu(): Promise<MenuTable[]> {
     const menus = await this.menuTableRepository.find({
+      where: {
+        parentId: IsNull(),
+        isActive: true, // Исключаем записи, у которых isActive=false
+      },
       relations: ['linked_post'],
       order: { order: 'ASC' },
     });
-    console.log('[MenuService] Загружено главное меню:', menus);
+  
+    // console.log('[MenuService] Загружено главное меню:', menus);
     return menus;
   }
-
   // Получение всех кнопок, связанных с постом через menu_post_buttons
   async getButtonsForPost(postId: number): Promise<MenuButton[]> {
     const buttons = await this.menuPostButtonRepository.find({
@@ -41,7 +45,6 @@ export class MenuService {
   
     return buttons.map((relation) => relation.button); // Возвращаем сами кнопки
   }
-
   // Получение поста по ID
   async getPostById(postId: number): Promise<MenuPost | null> {
     const post = await this.menuPostRepository.findOne({
@@ -51,7 +54,6 @@ export class MenuService {
     console.log(`[MenuService] Пост с ID=${postId}:`, post);
     return post;
   }
-
   // Получение кнопки по ID
   async getButtonById(buttonId: number): Promise<MenuButton | null> {
     console.log(`[MenuService] Ищем кнопку с ID: ${buttonId}`);
@@ -61,7 +63,6 @@ export class MenuService {
     console.log(`[MenuService] Найдена кнопка:`, button);
     return button;
   }
-
   //получения поста, связанного с кнопкой через таблицу menu_post_buttons:
   async getPostByButtonId(buttonId: number): Promise<MenuPost | null> {
     console.log(`[MenuService] Ищем пост, связанный с кнопкой ID=${buttonId}`);
@@ -79,5 +80,35 @@ export class MenuService {
     console.log(`[MenuService] Найден пост для кнопки ID=${buttonId}:`, relation.post);
     return relation.post;
   }
+  // Получение дочерних элементов меню по parentId
+  async getMenuById(menuId: number): Promise<MenuTable | null> {
+    const menu = await this.menuTableRepository.findOne({
+      where: { id: menuId },
+      relations: ['linked_post'],
+    });
+    console.log(`[MenuService] Меню с ID=${menuId}:`, menu);
+    return menu;
+  }
+  async getSubMenusByParentId(parentId: number): Promise<MenuTable[]> {
+    const subMenus = await this.menuTableRepository.find({
+      where: { parentId, isActive: true }, // Добавлено условие isActive
+      order: { order: 'ASC' },
+    });
+    console.log(`[MenuService] Дочерние элементы меню для parentId=${parentId}:`, subMenus);
+    return subMenus;
+  }
+  private userSessions = new Map<number, { lastMenuId: number }>(); // Простая реализация хранения
+
+async setLastMenu(userId: number, menuId: number): Promise<void> {
+  this.userSessions.set(userId, { lastMenuId: menuId });
+}
+
+async getLastMenu(userId: number): Promise<MenuTable | null> {
+  const session = this.userSessions.get(userId);
+  if (session?.lastMenuId) {
+    return this.getMenuById(session.lastMenuId);
+  }
+  return null;
+}
 
 }
