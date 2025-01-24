@@ -23,7 +23,6 @@ export class MenuService {
   async getMainMenu(): Promise<MenuTable[]> {
     const menus = await this.menuTableRepository.find({
       where: {
-        parentId: IsNull(),
         isActive: true, // Исключаем записи, у которых isActive=false
       },
       relations: ['linked_post'],
@@ -110,5 +109,12 @@ async getLastMenu(userId: number): Promise<MenuTable | null> {
   }
   return null;
 }
-
+// Обновление состояния пунктов меню по parentId
+async updateMenuState(parentId: number, isActive: boolean): Promise<void> {
+  await this.menuTableRepository.update(
+    { parentId }, // Условие: все подменю с parentId
+    { isActive }  // Обновляем состояние
+  );
+  console.log(`[MenuService] Обновлено состояние меню для parentId=${parentId}: isActive=${isActive}`);
+}
 }

@@ -59,48 +59,53 @@ export class BotService implements OnModuleInit {
 
     await this.sendMainMenu(ctx);
   }
-
   /**
    * Обработка текстового сообщения
    */
   private async handleTextMessage(ctx: any) {
     const text = ctx.message?.text;
     if (!text) {
-      console.log('[BotService] Сообщение без текста');
-      return;
+        console.log('[BotService] Сообщение без текста');
+        return;
     }
 
     console.log(`[BotService] Получено текстовое сообщение: "${text}"`);
 
     // Если пользователь нажал "⬅️ Назад"
     if (text === '⬅️ Назад') {
-      const userId = ctx.from.id;
-      const lastMenu = await this.menuService.getLastMenu(userId);
+        const userId = ctx.from.id;
+        const lastMenu = await this.menuService.getLastMenu(userId);
 
-      if (lastMenu?.parentId) {
-        console.log(`[BotService] Возвращаемся к родительскому меню с ID: ${lastMenu.parentId}`);
-        const parentMenu = await this.menuService.getMenuById(lastMenu.parentId);
-
-        if (parentMenu) {
-          const subMenus = await this.menuService.getSubMenusByParentId(parentMenu.id);
-          const keyboard = subMenus.map((submenu) => [{ text: submenu.name }]);
-          keyboard.push([{ text: '⬅️ Назад' }]); // Добавляем кнопку "Назад"
-
-          await ctx.reply('ボタンを選択👇', {
-            reply_markup: {
-              keyboard,
-              resize_keyboard: true,
-            },
-          });
-
-          await this.menuService.setLastMenu(userId, parentMenu.id); // Обновляем состояние пользователя
-          return;
+        // Скрыть все подменю перед возвратом
+        if (lastMenu?.id) {
+            console.log(`[BotService] Скрываем подменю для menuId=${lastMenu.id}`);
+            await this.menuService.updateMenuState(lastMenu.id, false);
         }
-      }
 
-      console.log('[BotService] Нет родительского меню для возврата.');
-      await this.sendMainMenu(ctx); // Возвращаемся в главное меню, если родительского меню нет
-      return;
+        if (lastMenu?.parentId) {
+            console.log(`[BotService] Возвращаемся к родительскому меню с ID: ${lastMenu.parentId}`);
+            const parentMenu = await this.menuService.getMenuById(lastMenu.parentId);
+
+            if (parentMenu) {
+                const subMenus = await this.menuService.getSubMenusByParentId(parentMenu.id);
+                const keyboard = subMenus.map((submenu) => [{ text: submenu.name }]);
+                keyboard.push([{ text: '⬅️ Назад' }]); // Добавляем кнопку "Назад"
+
+                await ctx.reply('ボタンを選択👇', {
+                    reply_markup: {
+                        keyboard,
+                        resize_keyboard: true,
+                    },
+                });
+
+                await this.menuService.setLastMenu(userId, parentMenu.id); // Обновляем состояние пользователя
+                return;
+            }
+        }
+
+        console.log('[BotService] Нет родительского меню для возврата.');
+        await this.sendMainMenu(ctx); // Возвращаемся в главное меню, если родительского меню нет
+        return;
     }
 
     // Получаем главное меню
@@ -108,34 +113,40 @@ export class BotService implements OnModuleInit {
     const selectedMenu = menus.find((menu) => menu.name === text);
 
     if (!selectedMenu) {
-      console.log('[BotService] Меню не найдено для текста:', text);
-      await ctx.reply('Некорректный выбор. Попробуйте снова.');
-      return;
+        console.log('[BotService] Меню не найдено для текста:', text);
+        await ctx.reply('Некорректный выбор. Попробуйте снова.');
+        return;
     }
 
     console.log(`[BotService] Выбрано меню с ID: ${selectedMenu.id}`);
 
+    // Скрываем все подменю текущего уровня перед активацией
+    await this.menuService.updateMenuState(selectedMenu.id, false);
+
+    // Активируем подменю перед их отображением
+    await this.menuService.updateMenuState(selectedMenu.id, true);
+
     const subMenus = await this.menuService.getSubMenusByParentId(selectedMenu.id);
 
     if (subMenus.length > 0) {
-      console.log(`[BotService] Меню имеет подменю:`, subMenus);
-      const keyboard = subMenus.map((submenu) => [{ text: submenu.name }]);
-      keyboard.push([{ text: '⬅️ Назад' }]); // Добавляем кнопку "Назад"
+        console.log(`[BotService] Меню имеет подменю:`, subMenus);
+        const keyboard = subMenus.map((submenu) => [{ text: submenu.name }]);
+        keyboard.push([{ text: '⬅️ Назад' }]); // Добавляем кнопку "Назад"
 
-      await ctx.reply('ボタンを選択👇', {
-        reply_markup: {
-          keyboard,
-          resize_keyboard: true,
-        },
-      });
+        await ctx.reply('ボタンを選択👇', {
+            reply_markup: {
+                keyboard,
+                resize_keyboard: true,
+            },
+        });
 
-      const userId = ctx.from.id;
-      await this.menuService.setLastMenu(userId, selectedMenu.id); // Сохраняем состояние пользователя
+        const userId = ctx.from.id;
+        await this.menuService.setLastMenu(userId, selectedMenu.id); // Сохраняем состояние пользователя
     } else if (selectedMenu.linked_post) {
-      console.log(`[BotService] Переходим к связанному посту с ID: ${selectedMenu.linked_post.id}`);
-      await this.handlePost(ctx, selectedMenu.linked_post.id);
+        console.log(`[BotService] Переходим к связанному посту с ID: ${selectedMenu.linked_post.id}`);
+        await this.handlePost(ctx, selectedMenu.linked_post.id);
     } else {
-      await ctx.reply('Нет связанных данных для этого меню.');
+        await ctx.reply('Нет связанных данных для этого меню.');
     }
   }
   /**
