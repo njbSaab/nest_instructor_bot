@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BotModule } from './bot/bot.module';
 import { DatabaseModule } from './database/database.module';
 import { UsersModule } from './users/users.module';
+import { ApiModule } from './api/api.module';
 
 
 @Module({
@@ -28,7 +29,8 @@ import { UsersModule } from './users/users.module';
     }),
     DatabaseModule,
     BotModule,
-    UsersModule
+    UsersModule,
+    ApiModule
   ],
 })
 export class AppModule implements OnModuleInit {

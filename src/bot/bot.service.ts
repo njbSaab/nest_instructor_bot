@@ -31,14 +31,16 @@ export class BotService implements OnModuleInit {
     this.bot.on('callback_query', (ctx) => this.handleCallbackQuery(ctx));
 
     try {
-      await this.bot.launch();
-      console.log('[BotService] Бот успешно запущен и ожидает команды.');
+      this.bot.launch()
+      .then(() => console.log('[BotService] Бот запущен'))
+      .catch((err) => console.error('[BotService] Ошибка запуска бота:', err));
+        console.log('[BotService] Бот успешно запущен и ожидает команды.');
     } catch (error) {
       console.error('[BotService] Ошибка запуска бота:', error);
     }
   }
 
-  /**
+  /*
    * Обработка команды /start
    */
   private async handleStartCommand(ctx: any) {
@@ -56,10 +58,9 @@ export class BotService implements OnModuleInit {
       }
       await new Promise((resolve) => setTimeout(resolve, 2500));
     }
-
     await this.sendMainMenu(ctx);
   }
-  /**
+  /*
    * Обработка текстового сообщения
    */
   private async handleTextMessage(ctx: any) {
@@ -149,7 +150,7 @@ export class BotService implements OnModuleInit {
         await ctx.reply('Нет связанных данных для этого меню.');
     }
   }
-  /**
+  /*
    * Обработка инлайн-кнопок
    */
   private async handleCallbackQuery(ctx: any) {
@@ -211,7 +212,7 @@ export class BotService implements OnModuleInit {
     await ctx.answerCbQuery();
   }
 
-  /**
+  /*
    * Логика обработки поста
    */
   private async handlePost(ctx: any, postId: number) {

@@ -8,17 +8,23 @@ async function bootstrap() {
   config();
   console.log('[NestApplication] Инициализация приложения...');
   
-  app.enableCors({
-    origin: [
-      'http://localhost:4200',
-      'https://astonishing-biscochitos-1d05c8.netlify.app',
-    ],
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true, // Если нужно передавать куки
-  });
+app.enableCors({
+  origin: [
+    'http://localhost:4200',
+    'https://astonishing-biscochitos-1d05c8.netlify.app',
+  ],
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true,
+});
 
   const PORT = process.env.PORT || 3000;
-  await app.listen(PORT);
-  console.log(`[NestApplication] Приложение запущено на http://localhost:${PORT}`);
+  console.log('PORT from env:', process.env.PORT);
+  
+  try {
+    await app.listen(PORT);
+    console.log(`[NestApplication] Приложение запущено на http://localhost:${PORT}`);
+  } catch (error) {
+    console.error('[NestApplication] Ошибка при запуске приложения:', error);
+  }
 }
 bootstrap();
