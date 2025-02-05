@@ -1,5 +1,4 @@
 import { Controller, Get, Put, Param, Body, NotFoundException } from '@nestjs/common';
-// import { GreetingBotService } from '../services/greeting-bot.service';
 import { GreetingBotService } from '../services/greeting-bot.service';
 import { GreetingBot } from '../../entities/greeting-bot.entity';
 
