@@ -15,6 +15,8 @@ import { MenuTableService } from './services/tables-menu.service';
 import { MenuTableController } from './controllers/tables-menu.controller';
 import { MenuPostButtonsService } from './services/menu-post-buttons.service';
 import { MenuPostButtonsController } from './controllers/menu-post-buttons.controller';
+import { MenuButtonInlineService } from './services/menu-buttons-inline.service';
+import { MenuButtonInlineController } from './controllers/menu-buttons-inline.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([      
@@ -25,8 +27,22 @@ import { MenuPostButtonsController } from './controllers/menu-post-buttons.contr
         MenuPostButton
     ]), // Импортируем сущности
   ],
-  controllers: [ApiController, GreetingController,MenuPostController, MenuTableController, MenuPostButtonsController], // Регистрируем контроллер
-  providers: [ApiService, GreetingBotService, MenuPostService, MenuTableService, MenuPostButtonsService], // Регистрируем сервис
+  controllers: [
+    ApiController,
+    GreetingController,
+    MenuPostController, 
+    MenuTableController, 
+    MenuPostButtonsController,
+    MenuButtonInlineController
+    ], // Регистрируем контроллер
+  providers: [
+    ApiService,
+    GreetingBotService, 
+    MenuPostService,
+    MenuTableService,
+    MenuPostButtonsService,
+    MenuButtonInlineService
+      ], // Регистрируем сервис
   exports: [ApiService], // Экспортируем сервис, если потребуется в других модулях
 })
 export class ApiModule {}
