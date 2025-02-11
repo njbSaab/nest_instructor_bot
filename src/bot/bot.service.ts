@@ -154,8 +154,8 @@ export class BotService implements OnModuleInit {
    * Обработка инлайн-кнопок
    */
   private async handleCallbackQuery(ctx: any) {
-    const callbackQuery = ctx.callbackQuery as CallbackQuery;
-    const callbackData = (callbackQuery as any).data;
+    const callbackQuery = ctx.callbackQuery;
+    const callbackData = callbackQuery?.data;
   
     if (!callbackData) {
       console.log('[BotService] Callback без данных');
@@ -163,58 +163,87 @@ export class BotService implements OnModuleInit {
       return;
     }
   
-    const menuId = parseInt(callbackData, 10);
-    console.log(`[BotService] Нажата кнопка с ID: ${menuId}`);
-  
-    if (isNaN(menuId)) {
-      console.log('[BotService] Некорректный menuId');
+    // Пытаемся распарсить callbackData как ID кнопки
+    const buttonId = parseInt(callbackData, 10);
+    if (isNaN(buttonId)) {
+      console.log('[BotService] Некорректный ID кнопки:', callbackData);
       await ctx.answerCbQuery('Некорректные данные');
       return;
     }
   
-    const menu = await this.menuService.getMenuById(menuId);
-    if (!menu) {
-      console.log(`[BotService] Меню с ID=${menuId} не найдено.`);
-      await ctx.reply('Меню не найдено.');
+    console.log(`[BotService] Нажата inline-кнопка с ID: ${buttonId}`);
+  
+    // 1. Ищем кнопку в базе
+    const button = await this.menuService.getButtonById(buttonId);
+    if (!button) {
+      console.log(`[BotService] Кнопка с ID=${buttonId} не найдена.`);
+      await ctx.reply('Кнопка не найдена.');
       await ctx.answerCbQuery();
       return;
     }
   
-    const subMenus = await this.menuService.getSubMenusByParentId(menuId);
-    const keyboard = subMenus.map((submenu) => [
-      { text: submenu.name, callback_data: submenu.id.toString() },
-    ]);
+    // 2. Если у кнопки есть внешний URL — отправляем/открываем ссылку
+    //    Обычно в Telegram inline-кнопки можно сразу делать с "url", и тогда бот не получает callback,
+    //    но если нужно именно отреагировать на колбэк, то можно так:
+    if (button.url) {
+      console.log(`[BotService] У кнопки есть внешний URL: ${button.url}`);
+      // Вариант A: Просто отправить сообщение с ссылкой
+      await ctx.reply(`Вот ваша ссылка: ${button.url}`);
+      // Вариант B: Можно попробовать answerCbQuery с ссылкой
+      //    Это менее стандартно, поскольку Telegram обычно открывает ссылку автоматически,
+      //    если inline-кнопка содержит поле url. Но если вам нужно через бота:
+      // await ctx.answerCbQuery(`Открываю ссылку...`, { url: button.url });
   
-    // Если это не главное меню, добавляем кнопку "Назад"
-    if (menu.parentId !== null) {
-      console.log(`[BotService] Добавляем кнопку "Назад" для parentId=${menu.parentId}`);
-      keyboard.push([{ text: '⬅️ Назад', callback_data: menu.parentId.toString() }]);
-    }
-  
-    if (subMenus.length > 0) {
-      console.log('[BotService] Отображаем подменю:', keyboard);
-      await ctx.reply('Выберите вариант:', {
-        reply_markup: { inline_keyboard: keyboard },
-      });
       await ctx.answerCbQuery();
       return;
     }
   
-    if (menu.linked_post) {
-      console.log(`[BotService] Кнопка вызывает пост с ID: ${menu.linked_post.id}`);
-      await this.handlePost(ctx, menu.linked_post.id);
+    // 3. Если URL нет, но у кнопки есть привязанный postId — показываем этот пост
+    if (button.postId) {
+      console.log(`[BotService] У кнопки есть postId=${button.postId}. Отправляем пост.`);
+      await this.handlePost(ctx, button.postId);
       await ctx.answerCbQuery();
       return;
     }
   
-    console.log('[BotService] Нет данных для отображения.');
-    await ctx.reply('Нет данных для отображения.');
+    // 4. Если ни URL, ни postId нет — скажем, что данных нет
+    console.log('[BotService] Кнопка не содержит URL и не привязана к посту.');
+    await ctx.reply('Нет данных для отображения по этой кнопке.');
     await ctx.answerCbQuery();
   }
-
   /*
    * Логика обработки поста
    */
+  // private async handlePost(ctx: any, postId: number) {
+  //   console.log(`[BotService] Обрабатываем пост с ID: ${postId}`);
+  //   const post = await this.menuService.getPostById(postId);
+  //   if (!post) {
+  //     await ctx.reply('Пост не найден.');
+  //     return;
+  //   }
+
+  //   const buttons = await this.menuService.getButtonsForPost(post.id);
+  //   let messageText = post.post_content || '';
+
+  //   if (post.post_image_url) {
+  //     await ctx.replyWithPhoto(post.post_image_url, {
+  //       caption: messageText,
+  //       reply_markup: buttons.length
+  //         ? { inline_keyboard: buttons.map((button) => [{ text: button.name, callback_data: button.id.toString() }]) }
+  //         : undefined,
+  //     });
+  //   } else {
+  //     await ctx.reply(messageText, {
+  //       reply_markup: buttons.length
+  //         ? { inline_keyboard: buttons.map((button) => [{ text: button.name, callback_data: button.id.toString() }]) }
+  //         : undefined,
+  //     });
+  //   }
+
+  //   if (post.next_post) {
+  //     await this.handlePost(ctx, post.next_post.id);
+  //   }
+  // }
   private async handlePost(ctx: any, postId: number) {
     console.log(`[BotService] Обрабатываем пост с ID: ${postId}`);
     const post = await this.menuService.getPostById(postId);
@@ -222,30 +251,43 @@ export class BotService implements OnModuleInit {
       await ctx.reply('Пост не найден.');
       return;
     }
-
+  
+    // Получаем кнопки, связанные с постом
     const buttons = await this.menuService.getButtonsForPost(post.id);
-    let messageText = post.post_content || '';
-
+  
+    // Формируем inline-кнопки с учётом url/нет url
+    const inlineKeyboard = buttons.map((btn) => {
+      if (btn.url) {
+        // Кнопка с внешней ссылкой -> Telegram сам откроет, без колбэка
+        return [{ text: btn.name, url: btn.url }];
+      } else {
+        // Обычная кнопка -> callback_data
+        return [{ text: btn.name, callback_data: btn.id.toString() }];
+      }
+    });
+  
+    // Само сообщение (с картинкой или без)
+    const messageText = post.post_content || '';
     if (post.post_image_url) {
       await ctx.replyWithPhoto(post.post_image_url, {
         caption: messageText,
-        reply_markup: buttons.length
-          ? { inline_keyboard: buttons.map((button) => [{ text: button.name, callback_data: button.id.toString() }]) }
+        reply_markup: inlineKeyboard.length
+          ? { inline_keyboard: inlineKeyboard }
           : undefined,
       });
     } else {
       await ctx.reply(messageText, {
-        reply_markup: buttons.length
-          ? { inline_keyboard: buttons.map((button) => [{ text: button.name, callback_data: button.id.toString() }]) }
+        reply_markup: inlineKeyboard.length
+          ? { inline_keyboard: inlineKeyboard }
           : undefined,
       });
     }
-
+  
+    // Если у поста есть next_post, рекурсивно показываем следующий пост
     if (post.next_post) {
       await this.handlePost(ctx, post.next_post.id);
     }
   }
-
   /*
   * Отправка главного меню с возможностью фильтрации по parentId
   */

@@ -4,7 +4,10 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn
 } from 'typeorm';
+import { MenuPost } from './menu-posts.entity'; // Импортируем сущность MenuPost
 
 @Entity('menu_buttons')
 export class MenuButton {
@@ -28,4 +31,12 @@ export class MenuButton {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+  // Связь с постом
+  @ManyToOne(() => MenuPost, { nullable: true }) // Связь с таблицей MenuPost
+  @JoinColumn({ name: 'postId' }) // Указываем имя колонки в базе данных
+  post?: MenuPost; // Связь с сущностью MenuPost (необязательная)
+  
+  @Column({ type: 'int', nullable: true })
+  postId?: number; // Поле для хранения id поста
 }

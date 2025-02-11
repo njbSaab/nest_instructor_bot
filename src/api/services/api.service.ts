@@ -26,7 +26,9 @@ export class ApiService {
 
   // Получить все кнопки
   async getAllMenuButtons() {
-    return this.menuButtonRepository.find();
+    return this.menuButtonRepository.find({
+      select: ['id', 'name', 'type', 'url', 'order', 'created_at', 'updated_at', 'post'],
+    });
   }
 
   // Получить все посты
