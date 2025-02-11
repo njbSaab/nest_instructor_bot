@@ -26,6 +26,9 @@ export class MenuButton {
   @Column({ type: 'int', default: 0 })
   order: number;
 
+  @Column({ type: 'int', nullable: true })
+  categorySportId: number;
+
   @CreateDateColumn()
   created_at: Date;
 

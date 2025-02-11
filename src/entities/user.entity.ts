@@ -4,8 +4,9 @@ import {
     Column,
     CreateDateColumn,
     UpdateDateColumn,
+    OneToOne,
   } from 'typeorm';
-  
+  import { UserSports } from './users-sport.entity';
   @Entity('users')
   export class User {
     @PrimaryColumn({ type: 'bigint' })
@@ -41,6 +42,9 @@ import {
     @Column({ type: 'timestamp', nullable: true })
     last_active: Date; // Последняя активность
   
+    @OneToOne(() => UserSports, (userSports) => userSports.user)
+    userSports: UserSports;
+
     @CreateDateColumn()
     created_at: Date; // Дата создания записи
   

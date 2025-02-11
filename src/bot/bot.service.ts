@@ -4,7 +4,7 @@ import { Telegraf } from 'telegraf';
 import { MenuService } from './services/menu.service';
 import { UsersService } from '../users/users.service';
 import { GreetingBotService } from './services/greeting-bot.service';
-import { CallbackQuery } from 'telegraf/typings/core/types/typegram';
+import { UserSportsService } from './services/user-sports.service';
 
 @Injectable()
 export class BotService implements OnModuleInit {
@@ -15,6 +15,7 @@ export class BotService implements OnModuleInit {
     private readonly menuService: MenuService,
     private readonly usersService: UsersService,
     private readonly greetingBotService: GreetingBotService,
+    private readonly userSportsService: UserSportsService, 
   ) {
     const botToken = this.configService.get<string>('TEL_TOKEN');
     if (!botToken) {
@@ -181,7 +182,41 @@ export class BotService implements OnModuleInit {
       await ctx.answerCbQuery();
       return;
     }
-  
+
+      // Проверяем, есть ли categorySportId (значит, это «опросная» кнопка)
+    // if (button.categorySportId) {
+    //   const userId = ctx.from.id;
+    //   const categoryId = button.categorySportId; // 1=football, 2=basketball, ...
+
+    //   // Определяем "да" или "нет", например, по названию кнопки
+    //   const isYes = button.name.includes('yes'); 
+    //   // или button.name === '✅ yes'
+
+    //   await this.userSportsService.updateUserSport(userId, categoryId, isYes);
+
+    //   if (isYes) {
+    //     await ctx.reply('Вы подписались!');
+    //   } else {
+    //     await ctx.reply('Вы отписались!');
+    //   }
+      
+    //   // Завершаем callback
+    //   await ctx.answerCbQuery();
+    //   return;
+    // }
+    if (button.categorySportId) {
+      const userId = ctx.from.id;
+      const categoryId = button.categorySportId;
+      const isYes = button.name.includes('yes');
+    
+      await this.userSportsService.updateUserSport(userId, categoryId, isYes);
+    
+      await ctx.reply(isYes ? 'Вы подписались!' : 'Вы отписались!');
+      
+      // НЕ делаем return, чтобы ещё проверить button.url, button.postId
+      // await ctx.answerCbQuery(); 
+      // НЕ вызываем здесь return
+    }
     // 2. Если у кнопки есть внешний URL — отправляем/открываем ссылку
     //    Обычно в Telegram inline-кнопки можно сразу делать с "url", и тогда бот не получает callback,
     //    но если нужно именно отреагировать на колбэк, то можно так:

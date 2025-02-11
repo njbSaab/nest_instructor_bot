@@ -11,15 +11,17 @@ import { GreetingBotService } from './services/greeting-bot.service';
 import { GreetingBot } from '../entities/greeting-bot.entity';
 import { MenuPost } from '../entities/menu-posts.entity';
 import { MenuPostButton } from '../entities/menu-post-button.entity';
+import { UserSports } from '../entities/users-sport.entity';
+import { UserSportsService } from './services/user-sports.service';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), // Глобальная конфигурация
-    TypeOrmModule.forFeature([MenuTable, MenuButton, MenuPost, GreetingBot, MenuPostButton]), // Подключение сущностей
+    TypeOrmModule.forFeature([MenuTable, MenuButton, MenuPost, GreetingBot, MenuPostButton, UserSports]), // Подключение сущностей
     UsersModule,
   ],
   controllers: [MenuController],
-  providers: [BotService, MenuService, GreetingBotService],
+  providers: [BotService, MenuService, GreetingBotService, UserSportsService],
   exports: [GreetingBotService], // Экспортируем, если используется в других модулях
 })
 export class BotModule {}
