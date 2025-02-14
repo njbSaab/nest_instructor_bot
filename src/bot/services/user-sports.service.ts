@@ -22,7 +22,15 @@ export class UserSportsService {
     }
     return userSports;
   }
-
+  async getSubscriptions(userId: number): Promise<{ football: boolean, basketball: boolean, box: boolean, ufc: boolean }> {
+    const userSports = await this.findOrCreate(userId);
+    return {
+      football: userSports.football,
+      basketball: userSports.basketball,
+      box: userSports.box,
+      ufc: userSports.ufc,
+    };
+  }
   async updateUserSport(userId: number, categoryId: number, isYes: boolean) {
     const userSports = await this.findOrCreate(userId);
 
