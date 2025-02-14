@@ -117,4 +117,14 @@ async updateMenuState(parentId: number, isActive: boolean): Promise<void> {
   );
   console.log(`[MenuService] Обновлено состояние меню для parentId=${parentId}: isActive=${isActive}`);
 }
+async getMaxCategorySportId(): Promise<number> {
+  const result = await this.menuButtonRepository
+    .createQueryBuilder('button')
+    .select('MAX(button.categorySportId)', 'max')
+    .where('button.categorySportId IS NOT NULL')
+    .getRawOne();
+
+  return Number(result.max);
+}
+
 }
