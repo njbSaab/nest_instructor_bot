@@ -26,6 +26,10 @@ export class MenuTable {
   @Column({ type: 'int', nullable: true })
   parentId: number;
 
+  @ManyToOne(() => MenuTable, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'parentMenuId' }) // Должно совпадать с названием в БД
+  parent_menu: MenuTable;
+
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
 

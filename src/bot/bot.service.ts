@@ -5,18 +5,24 @@ import { MenuService } from './services/menu.service';
 import { UsersService } from '../users/users.service';
 import { GreetingBotService } from './services/greeting-bot.service';
 import { UserSportsService } from './services/user-sports.service';
+import { UserNewsService } from './services/user-news.service';
+import axios from 'axios';
 
 @Injectable()
 export class BotService implements OnModuleInit {
   private bot: Telegraf;
-
+  // В начале класса BotService:
+  private emailVerification = new Map<number, { code: string; attempts: number }>();
+  
   constructor(
     private readonly configService: ConfigService,
     private readonly menuService: MenuService,
     private readonly usersService: UsersService,
     private readonly greetingBotService: GreetingBotService,
     private readonly userSportsService: UserSportsService, 
+    private readonly userServiceNews: UserNewsService
   ) {
+
     const botToken = this.configService.get<string>('TEL_TOKEN');
     if (!botToken) {
       throw new Error('Telegram токен не определен в .env файле');
@@ -73,6 +79,85 @@ export class BotService implements OnModuleInit {
 
     console.log(`[BotService] Получено текстовое сообщение: "${text}"`);
 
+  // Получаем пользователя
+  const user = await this.usersService.findOrCreateUser(ctx.from);
+  // Если пользователь находится в состоянии ожидания email
+  // Внутри метода handleTextMessage, когда пользователь в состоянии 'awaiting_email'
+  
+    // Если пользователь находится в состоянии ожидания email
+    if (user.state === 'awaiting_email') {
+      if (!this.validateEmail(text)) {
+        await ctx.reply('Некорректный email. Пожалуйста, введите правильный email:');
+        return;
+      }
+      
+      // Генерируем случайный 5-значный код
+      const code = Math.floor(10000 + Math.random() * 90000).toString();
+      
+      try {
+        // Отправляем HTTP POST запрос на указанный адрес с email и кодом
+        const response = await axios.post('http://localhost:3123/api/feedback', {
+          email: text,
+          code: code,
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        console.log('Email sent:', response.data);
+      } catch (error) {
+        console.error('Ошибка при отправке email:', error);
+        await ctx.reply('Произошла ошибка при отправке кода на ваш email. Попробуйте позже.');
+        return;
+      }
+      
+      // Обновляем email, устанавливаем isNewsActive = true
+      await this.usersService.updateEmailAndActivateNews(user.id, text);
+      await ctx.reply('Спасибо! Ваш email сохранен, новости активированы.');
+      
+      // Сохраняем сгенерированный код и 3 попытки для пользователя
+      this.emailVerification.set(user.id, { code, attempts: 3 });
+      
+      // Переводим пользователя в состояние ожидания ввода кода
+      await this.usersService.updateUserState(user.id, 'awaiting_code');
+      
+      await ctx.reply('Пожалуйста, введите код, который был отправлен на ваш email:');
+      return;
+    }
+
+    // Если пользователь находится в состоянии ожидания кода
+    if (user.state === 'awaiting_code') {
+      const verification = this.emailVerification.get(user.id);
+      if (!verification) {
+        // Если данных нет, просим ввести email заново
+        await this.usersService.updateUserState(user.id, 'awaiting_email');
+        await ctx.reply('Произошла ошибка. Пожалуйста, введите ваш email снова:');
+        return;
+      }
+      
+      if (text === verification.code) {
+        // Код введён верно, обновляем состояние пользователя
+        await this.usersService.updateUserState(user.id, 'email_getted');
+        await ctx.reply('Код подтвержден! Ваш email подтвержден, и новости активированы.');
+        // Удаляем данные верификации
+        this.emailVerification.delete(user.id);
+        
+        // Выводим inline-клавиатуру с кнопками для подписки на новости
+        await this.promptNewsSubscription(ctx);
+      } else {
+        // Код неверный, уменьшаем количество попыток
+        verification.attempts--;
+        if (verification.attempts > 0) {
+          await ctx.reply(`Неверный код. Осталось ${verification.attempts} попыток. Пожалуйста, попробуйте снова:`);
+        } else {
+          await ctx.reply('Вы исчерпали все попытки. Пожалуйста, введите ваш email снова:');
+          // Сбрасываем состояние и удаляем данные верификации
+          await this.usersService.updateUserState(user.id, 'awaiting_email');
+          this.emailVerification.delete(user.id);
+        }
+      }
+      return;
+    }
     // Если пользователь нажал "⬅️ Назад"
     if (text === '⬅️ Назад') {
         const userId = ctx.from.id;
@@ -116,7 +201,7 @@ export class BotService implements OnModuleInit {
 
     if (!selectedMenu) {
         console.log('[BotService] Меню не найдено для текста:', text);
-        await ctx.reply('Некорректный выбор. Попробуйте снова.');
+        await ctx.reply('Некорректный выбор. Попробуйте снова. 239');
         return;
     }
 
@@ -164,6 +249,41 @@ export class BotService implements OnModuleInit {
       return;
     }
   
+    // Если это кнопки подписки на новости (news_subscribe_yes/ no)
+    if (callbackData === 'news_subscribe_yes') {
+      const userId = ctx.from.id;
+      const subscriptions = await this.userSportsService.getSubscriptions(userId);
+      const newsItems = await this.userServiceNews.getNewsByCategories(subscriptions);
+      if (newsItems.length > 0) {
+        let index = 0;
+        const sendNextNews = async () => {
+          const news = newsItems[index];
+          if (news.post_image_url) {
+            await ctx.replyWithPhoto(news.post_image_url, {
+              caption: `${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`,
+            });
+          } else {
+            await ctx.reply(`${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`);
+          }
+          index++;
+          if (index < newsItems.length) {
+            // Ждем 2 секунды перед отправкой следующей новости
+            setTimeout(sendNextNews, 2000);
+          }
+        };
+        await sendNextNews();
+      } else {
+        await ctx.reply('К сожалению, новостей по вашим категориям пока нет.');
+      }
+      await ctx.answerCbQuery();
+      return;
+    }
+    if (callbackData === 'news_subscribe_no') {
+      await ctx.reply('Хорошо, новости не будут отправляться.');
+      await ctx.answerCbQuery();
+      return;
+    }
+  
     // Пытаемся распарсить callbackData как ID кнопки
     const buttonId = parseInt(callbackData, 10);
     if (isNaN(buttonId)) {
@@ -173,8 +293,6 @@ export class BotService implements OnModuleInit {
     }
   
     console.log(`[BotService] Нажата inline-кнопка с ID: ${buttonId}`);
-  
-    // 1. Ищем кнопку в базе
     const button = await this.menuService.getButtonById(buttonId);
     if (!button) {
       console.log(`[BotService] Кнопка с ID=${buttonId} не найдена.`);
@@ -182,58 +300,86 @@ export class BotService implements OnModuleInit {
       await ctx.answerCbQuery();
       return;
     }
-
-      // Проверяем, есть ли categorySportId (значит, это «опросная» кнопка)
-    // if (button.categorySportId) {
-    //   const userId = ctx.from.id;
-    //   const categoryId = button.categorySportId; // 1=football, 2=basketball, ...
-
-    //   // Определяем "да" или "нет", например, по названию кнопки
-    //   const isYes = button.name.includes('yes'); 
-    //   // или button.name === '✅ yes'
-
-    //   await this.userSportsService.updateUserSport(userId, categoryId, isYes);
-
-    //   if (isYes) {
-    //     await ctx.reply('Вы подписались!');
-    //   } else {
-    //     await ctx.reply('Вы отписались!');
-    //   }
-      
-    //   // Завершаем callback
-    //   await ctx.answerCbQuery();
-    //   return;
-    // }
+  
+    // Если это кнопка для новостей (categorySportId === 0)
+    if (button.categorySportId === 0) {
+      const userId = ctx.from.id;
+      const user = await this.usersService.findOrCreateUser(ctx.from);
+      // Если у пользователя заполнен email и новости активированы – отправляем новости
+      if (user.email && user.isNewsActive) {
+        const subscriptions = await this.userSportsService.getSubscriptions(userId);
+        const newsItems = await this.userServiceNews.getNewsByCategories(subscriptions);
+        if (newsItems.length > 0) {
+          let index = 0;
+          const sendNextNews = async () => {
+            const news = newsItems[index];
+            if (news.post_image_url) {
+              await ctx.replyWithPhoto(news.post_image_url, {
+                caption: `${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`,
+              });
+            } else {
+              await ctx.reply(`${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`);
+            }
+            index++;
+            if (index < newsItems.length) {
+              // Ждем 2 секунды перед отправкой следующей новости
+              setTimeout(sendNextNews, 2000);
+            }
+          };
+          await sendNextNews();
+        } else {
+          await ctx.reply('К сожалению, новостей по вашим категориям пока нет.');
+        }
+        await ctx.answerCbQuery();
+        return;
+      } else {
+        // Если email отсутствует или новости не активированы – запускаем опрос (вместо показа новости)
+        // Здесь запускается стандартная логика вопросов по категориям (ветка ниже)
+        // Вы можете, например, сообщить, что опрос начнется:
+        await ctx.reply('Для получения новостей заполните опрос:');
+        // Затем можно вызвать функцию обработки опросных кнопок (например, ниже, если button.categorySportId != 0)
+        // Или просто продолжить выполнение кода ниже
+        // В данном примере мы не делаем return, чтобы дальше выполнялась ветка с обработкой опросных кнопок
+      }
+  
+    }
+  
+    // Если это опросные кнопки (categorySportId != 0)
     if (button.categorySportId) {
       const userId = ctx.from.id;
-      const categoryId = button.categorySportId;
-      const isYes = button.name.includes('yes');
-    
+      const categoryId = button.categorySportId; // 1=football, 2=basketball, 3=box, 4=ufc
+      const isYes = button.name.includes('yes'); // или сравнение с '✅ yes'
+      
       await this.userSportsService.updateUserSport(userId, categoryId, isYes);
-    
       await ctx.reply(isYes ? 'Вы подписались!' : 'Вы отписались!');
       
-      // НЕ делаем return, чтобы ещё проверить button.url, button.postId
-      // await ctx.answerCbQuery(); 
-      // НЕ вызываем здесь return
+      // Если это последний вопрос (категория 4), переводим пользователя в режим ожидания email
+  // Получаем максимальное значение categorySportId из базы
+  const maxCategoryId = await this.menuService.getMaxCategorySportId();
+  if (categoryId === maxCategoryId) {
+    await this.usersService.updateUserState(userId, 'awaiting_email');
+    await ctx.reply(`Спасибо за ответы!`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await ctx.reply(`Подтвердите свой выбор категории. Мы пришлем Вам код на почту.`);
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    await ctx.reply(`Введите свой email:`);
+
+    await ctx.answerCbQuery();
+    return;
+  }
+      
+      await ctx.answerCbQuery();
     }
-    // 2. Если у кнопки есть внешний URL — отправляем/открываем ссылку
-    //    Обычно в Telegram inline-кнопки можно сразу делать с "url", и тогда бот не получает callback,
-    //    но если нужно именно отреагировать на колбэк, то можно так:
+  
+    // Если у кнопки есть внешний URL – отправляем его
     if (button.url) {
       console.log(`[BotService] У кнопки есть внешний URL: ${button.url}`);
-      // Вариант A: Просто отправить сообщение с ссылкой
       await ctx.reply(`Вот ваша ссылка: ${button.url}`);
-      // Вариант B: Можно попробовать answerCbQuery с ссылкой
-      //    Это менее стандартно, поскольку Telegram обычно открывает ссылку автоматически,
-      //    если inline-кнопка содержит поле url. Но если вам нужно через бота:
-      // await ctx.answerCbQuery(`Открываю ссылку...`, { url: button.url });
-  
       await ctx.answerCbQuery();
       return;
     }
   
-    // 3. Если URL нет, но у кнопки есть привязанный postId — показываем этот пост
+    // Если у кнопки есть postId – показываем пост
     if (button.postId) {
       console.log(`[BotService] У кнопки есть postId=${button.postId}. Отправляем пост.`);
       await this.handlePost(ctx, button.postId);
@@ -241,7 +387,6 @@ export class BotService implements OnModuleInit {
       return;
     }
   
-    // 4. Если ни URL, ни postId нет — скажем, что данных нет
     console.log('[BotService] Кнопка не содержит URL и не привязана к посту.');
     await ctx.reply('Нет данных для отображения по этой кнопке.');
     await ctx.answerCbQuery();
@@ -332,6 +477,24 @@ export class BotService implements OnModuleInit {
 
     await ctx.reply('ボタンを選択👇', {
       reply_markup: { keyboard, resize_keyboard: true, one_time_keyboard: false },
+    });
+  }
+  /*
+  * Валидация эмаила
+  */
+  private validateEmail(email: string): boolean {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  }
+
+
+  private async promptNewsSubscription(ctx: any): Promise<void> {
+    await ctx.reply('Желаете получать новости?', {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: '✅ Да', callback_data: 'news_subscribe_yes' },{ text: '❌ Нет', callback_data: 'news_subscribe_no' }],
+        ],
+      },
     });
   }
 }

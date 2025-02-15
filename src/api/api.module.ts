@@ -17,6 +17,10 @@ import { MenuPostButtonsService } from './services/menu-post-buttons.service';
 import { MenuPostButtonsController } from './controllers/menu-post-buttons.controller';
 import { MenuButtonInlineService } from './services/menu-buttons-inline.service';
 import { MenuButtonInlineController } from './controllers/menu-buttons-inline.controller';
+import { NewsUserService } from './services/news-user.service';
+import { NewsController } from './controllers/news.controller';
+import { NewsUser } from '../entities/news-user.entity';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([      
@@ -24,7 +28,8 @@ import { MenuButtonInlineController } from './controllers/menu-buttons-inline.co
         MenuPost,
         MenuButton,
         GreetingBot,
-        MenuPostButton
+        MenuPostButton,
+        NewsUser
     ]), // Импортируем сущности
   ],
   controllers: [
@@ -33,7 +38,8 @@ import { MenuButtonInlineController } from './controllers/menu-buttons-inline.co
     MenuPostController, 
     MenuTableController, 
     MenuPostButtonsController,
-    MenuButtonInlineController
+    MenuButtonInlineController,
+    NewsController
     ], // Регистрируем контроллер
   providers: [
     ApiService,
@@ -41,7 +47,8 @@ import { MenuButtonInlineController } from './controllers/menu-buttons-inline.co
     MenuPostService,
     MenuTableService,
     MenuPostButtonsService,
-    MenuButtonInlineService
+    MenuButtonInlineService,
+    NewsUserService
       ], // Регистрируем сервис
   exports: [ApiService], // Экспортируем сервис, если потребуется в других модулях
 })

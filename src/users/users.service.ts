@@ -32,4 +32,16 @@ export class UsersService {
     user.state = newState;
     return this.userRepository.save(user);
   }
+
+  async updateEmailAndActivateNews(userId: number, email: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error(`User with ID ${userId} not found`);
+    }
+    user.email = email;
+    user.isNewsActive = true;
+    user.state = 'email_getted';
+    return this.userRepository.save(user);
+  }
+  
 }

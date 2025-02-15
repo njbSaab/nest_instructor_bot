@@ -34,7 +34,7 @@ export class ApiService {
   // Получить все посты
   async getAllMenuPosts() {
     return this.menuPostRepository.find({
-      relations: ['buttons', 'buttons.button'],
+      relations: ['buttons', 'buttons.button', 'parent_menu'],
     });
   }
 

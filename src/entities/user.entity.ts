@@ -23,6 +23,9 @@ import {
   
     @Column({ type: 'varchar', length: 255, nullable: true })
     username: string; // Никнейм пользователя
+
+    @Column({ type: 'varchar', length: 255, nullable: true })
+    email: string; // Фамилия пользователя
   
     @Column({ type: 'varchar', length: 10, nullable: true })
     language_code: string; // Код языка
@@ -44,6 +47,9 @@ import {
   
     @OneToOne(() => UserSports, (userSports) => userSports.user)
     userSports: UserSports;
+
+    @Column({ type: 'boolean', default: false })
+    isNewsActive: boolean;
 
     @CreateDateColumn()
     created_at: Date; // Дата создания записи
