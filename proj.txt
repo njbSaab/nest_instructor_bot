@@ -116,18 +116,6 @@ id	menu_id	name	type	content	url	response_type	response_text	response_image_url
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 Расскажи мне как работаю эти связи кто с кем 
 
 Select: menu_tables
@@ -478,3 +466,290 @@ Edit
 
 С этим можно легко отобразить структуру на клиенте и правильно связать кнопки с контентом.
 
+
+
+Запомни мою структуру сейчас скажу задачу 
+
+
+api           bot           entities      users
+app.module.ts database      main.ts
+
+./api:
+api.module.ts controllers   services
+
+./api/controllers:
+api.controller.ts
+greeting.controller.ts
+menu-buttons-inline.controller.ts
+menu-post-buttons.controller.ts
+menu-post.controller.ts
+news.controller.ts
+tables-menu.controller.ts
+
+./api/services:
+api.service.ts
+greeting-bot.service.ts
+menu-buttons-inline.service.ts
+menu-post-buttons.service.ts
+menu-post.service.ts
+news-user.service.ts
+tables-menu.service.ts
+
+./bot:
+bot.module.ts  controllers    services
+bot.service.ts handlers
+
+./bot/controllers:
+greeting-bot.controller.ts user-sports.controller.ts
+menu.controller.ts
+
+./bot/handlers:
+callback-query.handler.ts start.handler.ts
+post.handler.ts           text-message.handler.ts
+
+./bot/services:
+greeting-bot.service.ts user-news.service.ts
+menu.service.ts         user-sports.service.ts
+
+./database:
+database.module.ts
+
+./entities:
+greeting-bot.entity.ts     menu-tables.entity.ts
+menu-button.entity.ts      news-user.entity.ts
+menu-post-button.entity.ts user.entity.ts
+menu-posts.entity.ts       users-sport.entity.ts
+
+./users:
+users.module.ts  users.service.ts
+
+~/Desktop/1xp/sftp-194.36.179.168/upload/bot/instruction-bot/src main* ❯                                     11:12:11
+
+
+
+
+-- Adminer 4.8.1 MySQL 8.0.40 dump
+
+SET NAMES utf8;
+SET time_zone = '+00:00';
+SET foreign_key_checks = 0;
+SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
+
+SET NAMES utf8mb4;
+
+DROP TABLE IF EXISTS `greeting_bot`;
+CREATE TABLE `greeting_bot` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `greeting_text` text NOT NULL,
+  `image_url` varchar(255) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `greeting_bot` (`id`, `greeting_text`, `image_url`, `created_at`, `updated_at`) VALUES
+(1,	'🐾 Purr-sonalized Just for You! 🐾\n\nMeow-mazing news! 😺 I’m Jet, your trusty guide, here to make your experience truly unique. 🎉 I’ve got exclusive treats, personalized updates, and purr-fect rewards waiting just for YOU!!!🌟  \n\nHere’s why sharing your info is pawsitively awesome:  \n✅ Custom bonuses and promotions tailored to your location 🌍  \n✅ Updates delivered in your language 🗣️  \n✅ Stay connected on the social platforms you most 📱  \n\n😸 No need to worry—your is safe with me! I guard your data like a bowl of cream. It’s only used to make your experience more pawsome. 🔐  \n\n💡 Just take a quick minute to share your details and unlock a world of:  \n🎁 Cat-tastic perks  \n🌟 Tailored updates  \n🎯 Rewards just for you  \n\n👉 Click below to get started! 🐾 Let’s make this journey the cat’s whiskers together! Ping up **/start** and let’s go, champ! 🚀',	'https://i.imgur.com/u8q0Ac3.jpeg',	'2025-01-22 13:10:06.543472',	'2025-02-15 19:18:23.000000'),
+(2,	'[user name] Before you dive in, take a moment to check out your options! These buttons will lead you to some cool things. Choose wisely, and let’s have some fun! 😄👇\n\nSocial Media: Click here to find out an exclusive bonuses and free spins just for you on your favorite social media 😎\nTop Slots: Want to know which games are trending this month? Click to reveal the top slots everyone is talking about! 🔥\nSport: Find today’s champions, live updates, and betting tips to keep you ahead in the game. 🏅\nReferral Program: Share the fun with your friends and unlock amazing rewards through our referral program. Learn more now!!!💎',	NULL,	'2025-01-22 14:09:01.489852',	'2025-02-15 19:18:37.000000');
+
+DROP TABLE IF EXISTS `menu_buttons`;
+CREATE TABLE `menu_buttons` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `type` enum('keyboard','inline') NOT NULL,
+  `url` varchar(255) DEFAULT NULL,
+  `order` int NOT NULL DEFAULT '0',
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `postId` int DEFAULT NULL,
+  `categorySportId` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FK_b88a01b372e481426531b9425fc` (`postId`),
+  CONSTRAINT `FK_b88a01b372e481426531b9425fc` FOREIGN KEY (`postId`) REFERENCES `menu_posts` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `menu_buttons` (`id`, `name`, `type`, `url`, `order`, `created_at`, `updated_at`, `postId`, `categorySportId`) VALUES
+(1,	'📰 Get news ',	'inline',	NULL,	1,	'2025-01-23 00:25:19.586966',	'2025-01-23 00:25:19.586966',	11,	0),
+(2,	' ⚽️🏀🏈  Select your the news sports category ⚾️🏐🥊',	'inline',	NULL,	2,	'2025-01-23 00:25:19.586966',	'2025-02-09 18:13:13.000000',	11,	NULL),
+(3,	'📣 Latest Updates!!!',	'inline',	NULL,	3,	'2025-01-23 00:25:19.586966',	'2025-01-23 00:25:19.586000',	8,	NULL),
+(4,	'👉 Ready to hit the reels??? Tap below, and let’s spin to win! 🌀',	'inline',	'https://jp.1xbet.com/ja',	1,	'2025-01-23 00:25:19.586966',	'2025-02-15 19:19:48.000000',	NULL,	NULL),
+(9,	'✅ yes',	'inline',	NULL,	1,	'2025-02-11 13:08:44.000000',	'2025-02-11 13:08:44.000000',	12,	1),
+(10,	'❌ No',	'inline',	NULL,	2,	'2025-02-11 13:08:44.000000',	'2025-02-11 13:08:44.000000',	12,	1),
+(11,	'✅ yes',	'inline',	NULL,	1,	'2025-02-11 13:08:44.000000',	'2025-02-11 13:08:44.000000',	13,	2),
+(12,	'❌ No',	'inline',	NULL,	2,	'2025-02-11 13:08:44.000000',	'2025-02-11 13:08:44.000000',	13,	2),
+(13,	'✅ yes',	'inline',	NULL,	1,	'2025-02-11 13:08:44.000000',	'2025-02-11 13:08:44.000000',	14,	3),
+(14,	'❌ No',	'inline',	NULL,	2,	'2025-02-11 13:08:44.000000',	'2025-02-11 13:08:44.000000',	14,	3),
+(15,	'✅ yes',	'inline',	NULL,	1,	'2025-02-11 13:08:44.000000',	'2025-02-11 13:08:44.000000',	NULL,	4),
+(16,	'❌ No',	'inline',	NULL,	2,	'2025-02-11 13:08:44.000000',	'2025-02-11 13:08:44.000000',	NULL,	4),
+(17,	'Popular slot in Japan ',	'inline',	NULL,	1,	'2025-02-11 14:28:09.000000',	'2025-02-11 14:28:09.000000',	8,	NULL),
+(18,	'Top slots of the l﻿ast month',	'inline',	NULL,	2,	'2025-02-11 14:28:09.000000',	'2025-02-11 14:28:09.000000',	9,	NULL),
+(19,	'New slots',	'inline',	NULL,	3,	'2025-02-11 14:28:09.000000',	'2025-02-11 14:28:09.000000',	15,	NULL),
+(20,	'Top 5 slots of the month',	'inline',	'https://jp.1xbet.com/ja',	1,	'2025-02-11 14:28:09.000000',	'2025-02-11 14:28:09.000000',	NULL,	NULL),
+(21,	'Redirect into site /slots',	'inline',	'https://jp.1xbet.com/ja',	1,	'2025-02-11 15:23:31.000000',	'2025-02-11 15:23:31.000000',	NULL,	NULL),
+(22,	'Redirect into site /slots',	'inline',	'https://jp.1xbet.com/ja',	6,	'2025-02-11 15:23:31.000000',	'2025-02-11 15:23:31.000000',	NULL,	NULL),
+(23,	'Кнопка 7',	'inline',	'https://example.com/3',	7,	'2025-02-11 15:23:31.000000',	'2025-02-11 15:23:31.000000',	NULL,	NULL),
+(24,	'Кнопка 8',	'inline',	'https://example.com/4',	8,	'2025-02-11 15:23:31.000000',	'2025-02-11 15:23:31.000000',	NULL,	NULL);
+
+DROP TABLE IF EXISTS `menu_post_buttons`;
+CREATE TABLE `menu_post_buttons` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `postId` int DEFAULT NULL,
+  `buttonId` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FK_1558cac9078e40c326ed7e311d8` (`postId`),
+  KEY `FK_8b6b714ae3fbaad5b57ff1197c9` (`buttonId`),
+  CONSTRAINT `FK_1558cac9078e40c326ed7e311d8` FOREIGN KEY (`postId`) REFERENCES `menu_posts` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `FK_8b6b714ae3fbaad5b57ff1197c9` FOREIGN KEY (`buttonId`) REFERENCES `menu_buttons` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `menu_post_buttons` (`id`, `postId`, `buttonId`) VALUES
+(1,	10,	1),
+(2,	10,	2),
+(3,	9,	21),
+(4,	3,	4),
+(9,	11,	9),
+(10,	11,	10),
+(11,	12,	11),
+(12,	12,	12),
+(13,	13,	13),
+(14,	13,	14),
+(15,	14,	15),
+(16,	14,	16),
+(29,	7,	17),
+(30,	7,	18),
+(31,	7,	19),
+(32,	8,	20),
+(33,	17,	22),
+(34,	NULL,	NULL),
+(35,	NULL,	NULL);
+
+DROP TABLE IF EXISTS `menu_posts`;
+CREATE TABLE `menu_posts` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `post_title` varchar(255) DEFAULT NULL,
+  `post_content` text,
+  `post_image_url` varchar(255) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `nextPostId` int DEFAULT NULL,
+  `parentMenuId` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FK_25188add05150b0e36fdebfc47b` (`nextPostId`),
+  KEY `FK_04482cc444cb7b80f6a13127f44` (`parentMenuId`),
+  CONSTRAINT `FK_04482cc444cb7b80f6a13127f44` FOREIGN KEY (`parentMenuId`) REFERENCES `menu_tables` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `FK_25188add05150b0e36fdebfc47b` FOREIGN KEY (`nextPostId`) REFERENCES `menu_posts` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `menu_posts` (`id`, `post_title`, `post_content`, `post_image_url`, `created_at`, `updated_at`, `nextPostId`, `parentMenuId`) VALUES
+(1,	'🎉 Welcome to the Social Media Zone!',	'🎉 Welcome to the Social Media Zone! 🌐💎\r\nGuess what? You’ve just unlocked a treasure trove of exclusive perks waiting for you on your favorite platforms! 🚀\r\n\r\n\r\nHere’s what’s in store for you:\r\n🎁 Exclusive Bonuses – Claim secret rewards and special offers you won’t find anywhere else.\r\n🎡 Free Spins Galore – Spin your way to excitement with free spins just for our social media fans!\r\n📣 Latest Updates – Stay ahead of the game with news, promotions, and surprises delivered straight to you.\r\n',	NULL,	'2025-01-23 00:25:05.957650',	'2025-01-23 00:25:05.957650',	6,	1),
+(2,	'🐾 Meow-mazing to See You Here!',	'🐾 Meow-mazing to See You Here! 🐾\r\n\r\nHey there, superstar! I have prepared a guide to the most exciting games and sports updates in Japan. 😺 Let’s explore together and make this the purr-fect adventure! 🎉\r\n\r\n🔥 Top Slots 🎰\r\nPaws up if you love spinning the reels! I’ve found the trendiest slots of the month just for YOU. 🐾\r\n\r\n👉 Ready to hit the reels? Tap below, and let’s spin to win! 🌀',	NULL,	'2025-01-23 00:25:05.957650',	'2025-01-23 00:25:05.957650',	3,	2),
+(3,	'Image Slot ',	NULL,	'https://i.imgur.com/OXwilcy.jpeg',	'2025-01-23 00:25:05.957650',	'2025-02-15 09:40:01.000000',	NULL,	2),
+(4,	'🏅 Welcome to the World of Sport and Winning! 🏟️',	'🏅 Welcome to the World of Sport and Winning! 🏟️	\r\nHello, Champion! 🎉 You’ve just stepped into the ultimate hub for all things sports and betting. Whether you\'re chasing live updates, expert tips, or today’s hottest odds, we’ve got you covered!\r\n\r\nHere’s what’s in store for you:\r\n⚽ Live Updates – Stay ahead of the game with real-time scores and stats.\r\n🎯 Expert Tips – Get insights and predictions to sharpen your betting game.\r\n🔥 Today’s Champions – Discover trending teams and players worth betting on.\r\n💰 Winning Odds – Explore competitive odds for maximum returns.\r\n🎉 Pro Tip: The action doesn’t stop here—check out our other features for even more ways to win big!\r\n\r\n📣 Ready to place your bets and make your mark? Let the games begin—tap below to start your winning streak! 🏆',	NULL,	'2025-01-23 15:20:04.000000',	'2025-01-23 15:20:04.000000',	10,	4),
+(5,	'Oops this section in process...',	'In process...',	'https://media.istockphoto.com/id/185244309/photo/work-in-progress.jpg?s=612x612&w=0&k=20&c=ECQ9StWhFTfFjWg_yt8ITEyAuZpRLVV8akD20jagc-Y=',	'2025-01-23 15:25:17.000000',	'2025-01-23 15:25:17.000000',	NULL,	5),
+(6,	'💡 Where to find us? (add buttons or links)',	'💡 Where to find us??? (add buttons or links)\r\n\r\n📸 Instagram – [ https://www.instagram.com/1xjet_japan/ ]\r\n🐦 Twitter – [ https://x.com/1x_jet ]\r\n📘 Facebook – [ https://www.facebook.com/1xjet/ ]\r\n📹 TikTok – [ https://www.tiktok.com/@1xjet ]\r\n🎞 YouTube - [ https://www.youtube.com/@1x_jet/shorts?themeRefresh=1 ]\r\n\r\n💬 Or follow us wherever you hang out the most!\r\nDon’t miss out on the action—tap the links, follow us, and let’s make the most of your experience together! 🌟',	'https://static1.makeuseofimages.com/wordpress/wp-content/uploads/2024/08/some-3d-social-media-icons.jpg',	'2025-02-08 16:46:28.000000',	'2025-02-15 09:40:12.000000',	NULL,	1),
+(7,	'🎰 Step into the world of big wins and exciting slots! 🎉',	'🎰 Step into the world of big wins and exciting slots! 🎉\r\nYou’ve just entered the most thrilling world of online casino games. Whether you\'re looking for exciting slots, classic table games, or exclusive jackpots, we’ve got everything you need to win big!\r\nHere’s what awaits you:\r\n🎰 Top Slots of the Last Month – Play the most popular and trending slots in Japan! From Sweet Bonanza to Golden Dragon, these games have captured the hearts of players across the country!\r\n🎲 New Slots – Explore the freshest additions to our slot collection! New themes, new features, and even bigger wins! \r\n🔥 Exclusive Bonuses – Claim your welcome bonus and other thrilling promotions.\r\n💰 Huge Jackpots – Don’t miss out on the chance to win life-changing prizes.\r\n🎉 Pro Tip: The fun never ends—check out our daily offers and bonuses for even more chances to win!\r\n\r\n📣 Ready to roll the dice and start your winning streak? Tap below to dive into the excitement and let the games begin! 🏆',	NULL,	'2025-02-08 19:32:58.203481',	'2025-02-08 19:32:58.203481',	NULL,	5),
+(8,	'These popular Japanese slots ',	'These popular Japanese slots are packed with features that bring cultural richness and unmatched excitement, making every spin a new chance to win big. Ready to play and chase those jackpots? Let the reels roll! 🎉',	NULL,	'2025-02-08 19:33:07.511117',	'2025-02-08 19:33:07.511117',	NULL,	5),
+(9,	'🐾 会えて嬉しいにゃん！🐾',	'🐾 会えて嬉しいにゃん！🐾\r\n\r\n日本で最もエキサイティングなゲームとスポーツの最新情報をまとめたガイドを用意しました😺 一緒に探索して、この冒険を完璧なものにしましょう🎉\r\n\r\n🔥 トップスロット 🎰\r\nリールを回すのが好きな方、手を挙げて！🐾 今月の注目スロットを厳選してご紹介します！',	'https://i.imgur.com/OXwilcy.jpeg',	'2025-02-11 10:45:17.000000',	'2025-02-11 10:45:17.000000',	NULL,	5),
+(10,	'🏟️ Choose Your Game, Champion! 🏅',	'🏟️ Choose Your Game, Champion! 🏅\r\n📸The stage is set, and the spotlight’s on YOU! 🌟\r\n It’s time to pick your favorite sport and dive into the action. Whether you’re all about goals, slam dunks, or high-speed races, we’ve got it all waiting for you!',	NULL,	'2025-02-11 11:03:59.000000',	'2025-02-11 11:03:59.000000',	NULL,	4),
+(11,	'⚽️ Subscribe to football news',	'⚽️ Subscribe to football news',	NULL,	'2025-02-11 12:47:09.000000',	'2025-02-11 12:47:09.000000',	NULL,	4),
+(12,	'🏀 Subscribe to basket news',	'🏀 Subscribe to basketball news',	NULL,	'2025-02-11 12:47:54.000000',	'2025-02-11 12:47:54.000000',	NULL,	4),
+(13,	'🥊 Subscribe to box news',	'🥊 Subscribe to boxing news',	NULL,	'2025-02-11 12:48:48.000000',	'2025-02-11 12:48:48.000000',	NULL,	4),
+(14,	'🤼‍♀️ Subscribe to ufc news',	'🤼‍♀️ Subscribe to ufc news',	NULL,	'2025-02-11 12:49:12.000000',	'2025-02-11 12:49:12.000000',	NULL,	4),
+(15,	'Get ready to experience ',	'Get ready to experience the latest and most exciting slots that have just landed! Our new slots bring fresh themes, innovative features, and huge rewards—perfect for those looking for a new adventure!🎰',	NULL,	'2025-02-11 15:33:09.000000',	'2025-02-11 15:33:09.000000',	16,	5),
+(16,	'picture',	NULL,	'https://i.imgur.com/GrEPQLE.jpeg',	'2025-02-11 15:33:09.000000',	'2025-02-15 16:38:26.000000',	17,	5),
+(17,	'Stay ahead ',	'Stay ahead of the game and be one of the first to try out the latest slots—the thrill never stops! 🎉 Ready to test your luck and explore the newest additions to our collection? Let’s spin and win!🔥',	NULL,	'2025-02-11 15:33:09.000000',	'2025-02-11 15:33:09.000000',	NULL,	5);
+
+DROP TABLE IF EXISTS `menu_tables`;
+CREATE TABLE `menu_tables` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `description` text,
+  `order` int NOT NULL DEFAULT '0',
+  `parentId` int DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `linkedPostId` int DEFAULT NULL,
+  `isActive` tinyint NOT NULL DEFAULT '1',
+  `parentMenuId` int DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `FK_d0c3daf4e50770b9ce2a1de45de` (`linkedPostId`),
+  KEY `FK_fc84dccfb87a141877a1c736b85` (`parentMenuId`),
+  CONSTRAINT `FK_d0c3daf4e50770b9ce2a1de45de` FOREIGN KEY (`linkedPostId`) REFERENCES `menu_posts` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `FK_fc84dccfb87a141877a1c736b85` FOREIGN KEY (`parentMenuId`) REFERENCES `menu_tables` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `menu_tables` (`id`, `name`, `description`, `order`, `parentId`, `created_at`, `updated_at`, `linkedPostId`, `isActive`, `parentMenuId`) VALUES
+(1,	'Social media',	'Welcomee',	1,	NULL,	'2025-01-23 00:25:26.757489',	'2025-02-15 19:20:14.000000',	1,	1,	NULL),
+(2,	'Top Slots',	'Meow-mazing to See You Here!',	2,	NULL,	'2025-01-23 00:25:26.757489',	'2025-02-15 12:33:44.000000',	2,	1,	NULL),
+(3,	'News',	'Последние новости и обновления',	3,	NULL,	'2025-01-23 00:25:26.757489',	'2025-02-15 13:04:34.000000',	NULL,	1,	NULL),
+(4,	'Sport',	'Latest updates in sports',	1,	3,	'2025-01-23 11:38:33.000000',	'2025-02-15 19:20:30.000000',	4,	0,	NULL),
+(5,	'Casino',	'Casino games and updates',	2,	3,	'2025-01-23 11:38:33.000000',	'2025-02-15 19:20:30.000000',	7,	0,	NULL);
+
+DROP TABLE IF EXISTS `news_bot`;
+CREATE TABLE `news_bot` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `post_title` varchar(255) DEFAULT NULL,
+  `post_content` text,
+  `post_image_url` varchar(255) DEFAULT NULL,
+  `category` enum('football','basketball','box','ufc') NOT NULL,
+  `isActive` tinyint NOT NULL DEFAULT '0',
+  `news_url` varchar(255) DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `news_bot` (`id`, `post_title`, `post_content`, `post_image_url`, `category`, `isActive`, `news_url`, `created_at`, `updated_at`) VALUES
+(1,	'欧州サッカー フライブルク 堂安律 先制点アシスト',	'サッカーのドイツ1部リーグ、フライブルクの堂安律選手が8日にホームで行われたハイデンハイム戦で、先制点をアシストし、チームの勝利に貢献しました。\n\n堂安選手は前半30分に、右からのクロスボールで先制点をアシストしました。\n\n後半39分に退きましたが、チームは1対0で勝って、勝利に貢献しまし',	'https://cdn.britannica.com/69/228369-050-0B18A1F6/Asian-Cup-Final-2019-Hasan-Al-Haydos-Qatar-Japan-Takumi-Minamino.jpg',	'football',	1,	'https://sports.yahoo.co.jp/',	'2025-02-13 15:04:22.027192',	'2025-02-15 16:39:03.000000'),
+(2,	'欧州サッカー フライブルク 堂安律 先制点アシスト',	'サッカーのドイツ1部リーグ、フライブルクの堂安律選手が8日にホームで行われたハイデンハイム戦で、先制点をアシストし、チームの勝利に貢献しました。\r\n\r\n堂安選手は前半30分に、右からのクロスボールで先制点をアシストしました。\r\n\r\n後半39分に退きましたが、チームは1対0で勝って、勝利に貢献しました。',	'https://image-cdn.hypb.st/https%3A%2F%2Fhypebeast.com%2Fimage%2F2020%2F02%2Fnike-football-soccer-kits-nigeria-usa-south-korea-3.jpg?q=75&w=800&cbr=1&fit=max',	'basketball',	1,	'https://sports.yahoo.co.jp/',	'2025-02-13 19:23:56.420261',	'2025-02-13 19:23:56.420261'),
+(3,	'NBA レイカーズ 八村塁 今季最多の24得点 チームは5連勝',	'NBA＝アメリカプロバスケットボール、レイカーズの八村塁選手は8日、ペイサーズ戦で今シーズン最多となる24得点をあげ、チームの5連勝に貢献しました。',	'https://image-cdn.hypb.st/https%3A%2F%2Fhypebeast.com%2Fimage%2F2020%2F02%2Fnike-football-soccer-kits-nigeria-usa-south-korea-3.jpg?q=75&w=800&cbr=1&fit=max',	'basketball',	1,	'https://image-cdn.hypb.st/https%3A%2F%2Fhypebeast.com%2Fimage%2F2020%2F02%2Fnike-football-soccer-kits-nigeria-usa-south-korea-3.jpg?q=75&w=800&cbr=1&fit=max',	'2025-02-13 19:25:05.173260',	'2025-02-13 19:25:05.173260'),
+(4,	'BOX レイカーズ 八村塁 今季最多の24得点 チームは5連勝',	'BOX＝アメリカプロバスケットボール、レイカーズの八村塁選手は8日、ペイサーズ戦で今シーズン最多となる24得点をあげ、チームの5連勝に貢献しました。',	'https://image-cdn.hypb.st/https%3A%2F%2Fhypebeast.com%2Fimage%2F2020%2F02%2Fnike-football-soccer-kits-nigeria-usa-south-korea-3.jpg?q=75&w=800&cbr=1&fit=max',	'box',	1,	'https://image-cdn.hypb.st/https%3A%2F%2Fhypebeast.com%2Fimage%2F2020%2F02%2Fnike-football-soccer-kits-nigeria-usa-south-korea-3.jpg?q=75&w=800&cbr=1&fit=max',	'2025-02-13 19:25:41.767380',	'2025-02-13 19:25:41.767380'),
+(5,	'ufc レイカーズ 八村塁 今季最多の24得点 チームは5連勝',	'ufc＝アメリカプロバスケットボール、レイカーズの八村塁選手は8日、ペイサーズ戦で今シーズン最多となる24得点をあげ、チームの5連勝に貢献しました',	'https://image-cdn.hypb.st/https%3A%2F%2Fhypebeast.com%2Fimage%2F2020%2F02%2Fnike-football-soccer-kits-nigeria-usa-south-korea-3.jpg?q=75&w=800&cbr=1&fit=max',	'ufc',	1,	'https://image-cdn.hypb.st/https%3A%2F%2Fhypebeast.com%2Fimage%2F2020%2F02%2Fnike-football-soccer-kits-nigeria-usa-south-korea-3.jpg?q=75&w=800&cbr=1&fit=max',	'2025-02-13 19:25:51.856989',	'2025-02-15 19:19:28.000000');
+
+DROP TABLE IF EXISTS `users`;
+CREATE TABLE `users` (
+  `id` bigint NOT NULL,
+  `is_bot` tinyint NOT NULL DEFAULT '0',
+  `first_name` varchar(255) NOT NULL,
+  `last_name` varchar(255) DEFAULT NULL,
+  `username` varchar(255) DEFAULT NULL,
+  `language_code` varchar(10) DEFAULT NULL,
+  `can_join_groups` tinyint NOT NULL DEFAULT '0',
+  `can_read_all_group_messages` tinyint NOT NULL DEFAULT '0',
+  `supports_inline_queries` tinyint NOT NULL DEFAULT '0',
+  `state` varchar(50) NOT NULL DEFAULT 'default',
+  `last_active` timestamp NULL DEFAULT NULL,
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `email` varchar(255) DEFAULT NULL,
+  `isNewsActive` tinyint NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `users` (`id`, `is_bot`, `first_name`, `last_name`, `username`, `language_code`, `can_join_groups`, `can_read_all_group_messages`, `supports_inline_queries`, `state`, `last_active`, `created_at`, `updated_at`, `email`, `isNewsActive`) VALUES
+(1317401681,	0,	'Nj_',	NULL,	'Nj_s44b',	'ru',	0,	0,	0,	'start',	NULL,	'2025-01-23 13:42:55.104883',	'2025-01-23 13:42:55.104883',	NULL,	0),
+(5075411916,	0,	'Njb',	NULL,	'Nj_Saab',	'ru',	0,	0,	0,	'email_getted',	NULL,	'2025-01-23 14:49:40.461118',	'2025-02-14 10:47:43.000000',	'sdr.expert@gmail.com',	1),
+(6684314409,	0,	'Vadim_acquisition',	NULL,	'Vadim_acquisition1',	'ru',	0,	0,	0,	'start',	NULL,	'2025-02-07 08:36:19.351009',	'2025-02-07 08:36:19.351009',	NULL,	0),
+(7066816061,	0,	'Najib',	'EA_tech',	'najib_eatech',	'ru',	0,	0,	0,	'email_getted',	NULL,	'2025-01-22 17:22:16.457111',	'2025-02-15 14:39:30.000000',	'sdr.expert@gmail.com',	1),
+(7166741351,	0,	'Karina PM EA',	'🇯🇵🇰🇷🇻🇳🇭🇰🇹🇼',	'Karina_PM_EA',	'en',	0,	0,	0,	'email_getted',	NULL,	'2025-02-10 12:06:08.466722',	'2025-02-14 08:52:15.000000',	NULL,	0);
+
+DROP TABLE IF EXISTS `users_sport`;
+CREATE TABLE `users_sport` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `football` tinyint NOT NULL DEFAULT '0',
+  `basketball` tinyint NOT NULL DEFAULT '0',
+  `box` tinyint NOT NULL DEFAULT '0',
+  `ufc` tinyint NOT NULL DEFAULT '0',
+  `created_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+  `updated_at` datetime(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+  `userId` bigint DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `REL_d89ec7e31d9f26ddb84e16a4da` (`userId`),
+  CONSTRAINT `FK_d89ec7e31d9f26ddb84e16a4da7` FOREIGN KEY (`userId`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `users_sport` (`id`, `football`, `basketball`, `box`, `ufc`, `created_at`, `updated_at`, `userId`) VALUES
+(1,	1,	1,	1,	1,	'2025-02-11 13:59:37.737963',	'2025-02-14 11:02:07.000000',	7066816061),
+(2,	1,	1,	1,	1,	'2025-02-14 08:51:34.010111',	'2025-02-14 08:51:50.000000',	7166741351),
+(3,	1,	1,	1,	1,	'2025-02-14 09:59:33.680010',	'2025-02-14 10:46:37.000000',	5075411916);
+
+-- 2025-02-17 09:13:47

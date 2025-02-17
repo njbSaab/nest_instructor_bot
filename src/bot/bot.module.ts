@@ -17,6 +17,9 @@ import { UserSportsService } from './services/user-sports.service';
 import { UserNewsService } from './services/user-news.service';
 import { PushNotificationService } from './services/push-notification.service';
 import { PushNotificationController } from './controllers/push-notification.controller';
+import { NewsCategory } from '../entities/news-category.entity';
+import { UserNewsCategoryService } from './services/user-news-category.service';
+import { User } from '../entities/user.entity';
 
 @Module({
   imports: [
@@ -29,6 +32,8 @@ import { PushNotificationController } from './controllers/push-notification.cont
           MenuPostButton,
            UserSports,
             NewsUser,
+            NewsCategory,
+            User
           ]),
     UsersModule,
   ],
@@ -39,7 +44,8 @@ import { PushNotificationController } from './controllers/push-notification.cont
       GreetingBotService,
        UserSportsService,
         UserNewsService,
-        PushNotificationService
+        PushNotificationService,
+        UserNewsCategoryService
       ],
   exports: [GreetingBotService], // Экспортируем, если используется в других модулях
 })

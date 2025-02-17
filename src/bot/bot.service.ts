@@ -6,6 +6,7 @@ import { UsersService } from '../users/users.service';
 import { GreetingBotService } from './services/greeting-bot.service';
 import { UserSportsService } from './services/user-sports.service';
 import { UserNewsService } from './services/user-news.service';
+import{ UserNewsCategoryService } from './services/user-news-category.service'
 import axios from 'axios';
 
 @Injectable()
@@ -20,7 +21,8 @@ export class BotService implements OnModuleInit {
     private readonly usersService: UsersService,
     private readonly greetingBotService: GreetingBotService,
     private readonly userSportsService: UserSportsService, 
-    private readonly userServiceNews: UserNewsService
+    private readonly userServiceNews: UserNewsService,
+    private readonly userNewsCategoryService: UserNewsCategoryService
   ) {
 
     const botToken = this.configService.get<string>('TEL_TOKEN');
@@ -252,8 +254,8 @@ export class BotService implements OnModuleInit {
     // Если это кнопки подписки на новости (news_subscribe_yes/ no)
     if (callbackData === 'news_subscribe_yes') {
       const userId = ctx.from.id;
-      const subscriptions = await this.userSportsService.getSubscriptions(userId);
-      const newsItems = await this.userServiceNews.getNewsByCategories(subscriptions);
+      const subscribedCategories = await this.userNewsCategoryService.getSubscriptions(userId);
+      const newsItems = await this.userServiceNews.getNewsByCategories(subscribedCategories);
       if (newsItems.length > 0) {
         let index = 0;
         const sendNextNews = async () => {
@@ -278,12 +280,12 @@ export class BotService implements OnModuleInit {
       await ctx.answerCbQuery();
       return;
     }
+
     if (callbackData === 'news_subscribe_no') {
       await ctx.reply('Хорошо, новости не будут отправляться.');
       await ctx.answerCbQuery();
       return;
     }
-  
     // Пытаемся распарсить callbackData как ID кнопки
     const buttonId = parseInt(callbackData, 10);
     if (isNaN(buttonId)) {
@@ -305,72 +307,76 @@ export class BotService implements OnModuleInit {
     if (button.categorySportId === 0) {
       const userId = ctx.from.id;
       const user = await this.usersService.findOrCreateUser(ctx.from);
-      // Если у пользователя заполнен email и новости активированы – отправляем новости
-      if (user.email && user.isNewsActive) {
-        const subscriptions = await this.userSportsService.getSubscriptions(userId);
-        const newsItems = await this.userServiceNews.getNewsByCategories(subscriptions);
-        if (newsItems.length > 0) {
-          let index = 0;
-          const sendNextNews = async () => {
-            const news = newsItems[index];
-            if (news.post_image_url) {
-              await ctx.replyWithPhoto(news.post_image_url, {
-                caption: `${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`,
-              });
-            } else {
-              await ctx.reply(`${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`);
-            }
-            index++;
-            if (index < newsItems.length) {
-              // Ждем 2 секунды перед отправкой следующей новости
-              setTimeout(sendNextNews, 2000);
-            }
-          };
-          await sendNextNews();
+      // Если у пользователя запо// Пример фрагмента кода в BotService:
+      if (button.categorySportId === 0) {
+        const userId = ctx.from.id;
+        const user = await this.usersService.findOrCreateUser(ctx.from);
+        if (user.email && user.isNewsActive) {
+          // Получаем подписки как массив имен категорий
+          const subscribedCategories = await this.userNewsCategoryService.getSubscriptions(userId);
+          const newsItems = await this.userServiceNews.getNewsByCategories(subscribedCategories);
+
+          if (newsItems.length > 0) {
+            let index = 0;
+            const sendNextNews = async () => {
+              const news = newsItems[index];
+              if (news.post_image_url) {
+                await ctx.replyWithPhoto(news.post_image_url, {
+                  caption: `${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`,
+                });
+              } else {
+                await ctx.reply(`${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`);
+              }
+              index++;
+              if (index < newsItems.length) {
+                setTimeout(sendNextNews, 2000);
+              }
+            };
+            await sendNextNews();
+          } else {
+            await ctx.reply('К сожалению, новостей по вашим категориям пока нет.');
+          }
+          await ctx.answerCbQuery();
+          return;
         } else {
-          await ctx.reply('К сожалению, новостей по вашим категориям пока нет.');
+          await ctx.reply('Для получения новостей заполните опрос:');
+          // Логика опроса остается, если email не заполнен или новости не активированы
         }
-        await ctx.answerCbQuery();
-        return;
       } else {
         // Если email отсутствует или новости не активированы – запускаем опрос (вместо показа новости)
         // Здесь запускается стандартная логика вопросов по категориям (ветка ниже)
-        // Вы можете, например, сообщить, что опрос начнется:
+        // Вы можете, например, сообщить, что опрос начнется
         await ctx.reply('Для получения новостей заполните опрос:');
         // Затем можно вызвать функцию обработки опросных кнопок (например, ниже, если button.categorySportId != 0)
         // Или просто продолжить выполнение кода ниже
         // В данном примере мы не делаем return, чтобы дальше выполнялась ветка с обработкой опросных кнопок
       }
-  
     }
-  
-    // Если это опросные кнопки (categorySportId != 0)
+    // Новый код для обработки опроса подписок:
     if (button.categorySportId) {
       const userId = ctx.from.id;
-      const categoryId = button.categorySportId; // 1=football, 2=basketball, 3=box, 4=ufc
-      const isYes = button.name.includes('yes'); // или сравнение с '✅ yes'
+      const categoryId = button.categorySportId; // ID из news_category
+      const isYes = button.name.includes('yes'); // Определяем, подписывается ли пользователь
       
-      await this.userSportsService.updateUserSport(userId, categoryId, isYes);
+      // Обновляем подписку через новый сервис
+      await this.userNewsCategoryService.updateSubscription(userId, categoryId, isYes);
+      
       await ctx.reply(isYes ? 'Вы подписались!' : 'Вы отписались!');
       
-      // Если это последний вопрос (категория 4), переводим пользователя в режим ожидания email
-  // Получаем максимальное значение categorySportId из базы
-  const maxCategoryId = await this.menuService.getMaxCategorySportId();
-  if (categoryId === maxCategoryId) {
-    await this.usersService.updateUserState(userId, 'awaiting_email');
-    await ctx.reply(`Спасибо за ответы!`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await ctx.reply(`Подтвердите свой выбор категории. Мы пришлем Вам код на почту.`);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    await ctx.reply(`Введите свой email:`);
-
-    await ctx.answerCbQuery();
-    return;
-  }
+      const maxCategoryId = await this.menuService.getMaxCategorySportId();
+      if (categoryId === maxCategoryId) {
+        await this.usersService.updateUserState(userId, 'awaiting_email');
+        await ctx.reply('Спасибо за ответы!');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await ctx.reply('Подтвердите свой выбор категории. Мы пришлем Вам код на почту.');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        await ctx.reply('Введите свой email:');
+        await ctx.answerCbQuery();
+        return;
+      }
       
       await ctx.answerCbQuery();
     }
-  
     // Если у кнопки есть внешний URL – отправляем его
     if (button.url) {
       console.log(`[BotService] У кнопки есть внешний URL: ${button.url}`);
@@ -378,7 +384,6 @@ export class BotService implements OnModuleInit {
       await ctx.answerCbQuery();
       return;
     }
-  
     // Если у кнопки есть postId – показываем пост
     if (button.postId) {
       console.log(`[BotService] У кнопки есть postId=${button.postId}. Отправляем пост.`);
@@ -386,44 +391,14 @@ export class BotService implements OnModuleInit {
       await ctx.answerCbQuery();
       return;
     }
-  
     console.log('[BotService] Кнопка не содержит URL и не привязана к посту.');
     await ctx.reply('Нет данных для отображения по этой кнопке.');
     await ctx.answerCbQuery();
   }
+
   /*
    * Логика обработки поста
    */
-  // private async handlePost(ctx: any, postId: number) {
-  //   console.log(`[BotService] Обрабатываем пост с ID: ${postId}`);
-  //   const post = await this.menuService.getPostById(postId);
-  //   if (!post) {
-  //     await ctx.reply('Пост не найден.');
-  //     return;
-  //   }
-
-  //   const buttons = await this.menuService.getButtonsForPost(post.id);
-  //   let messageText = post.post_content || '';
-
-  //   if (post.post_image_url) {
-  //     await ctx.replyWithPhoto(post.post_image_url, {
-  //       caption: messageText,
-  //       reply_markup: buttons.length
-  //         ? { inline_keyboard: buttons.map((button) => [{ text: button.name, callback_data: button.id.toString() }]) }
-  //         : undefined,
-  //     });
-  //   } else {
-  //     await ctx.reply(messageText, {
-  //       reply_markup: buttons.length
-  //         ? { inline_keyboard: buttons.map((button) => [{ text: button.name, callback_data: button.id.toString() }]) }
-  //         : undefined,
-  //     });
-  //   }
-
-  //   if (post.next_post) {
-  //     await this.handlePost(ctx, post.next_post.id);
-  //   }
-  // }
   private async handlePost(ctx: any, postId: number) {
     console.log(`[BotService] Обрабатываем пост с ID: ${postId}`);
     const post = await this.menuService.getPostById(postId);

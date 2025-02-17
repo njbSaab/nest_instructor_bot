@@ -1,59 +1,59 @@
-import {
-    Entity,
-    PrimaryColumn,
-    Column,
-    CreateDateColumn,
-    UpdateDateColumn,
-    OneToOne,
-  } from 'typeorm';
-  import { UserSports } from './users-sport.entity';
-  @Entity('users')
-  export class User {
-    @PrimaryColumn({ type: 'bigint' })
-    id: number; // ID пользователя Telegram
-  
-    @Column({ type: 'boolean', default: false })
-    is_bot: boolean; // Является ли ботом
-  
-    @Column({ type: 'varchar', length: 255 })
-    first_name: string; // Имя пользователя
-  
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    last_name: string; // Фамилия пользователя
-  
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    username: string; // Никнейм пользователя
+import { Entity, PrimaryColumn, Column, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { NewsCategory } from './news-category.entity';
 
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    email: string; // Фамилия пользователя
-  
-    @Column({ type: 'varchar', length: 10, nullable: true })
-    language_code: string; // Код языка
-  
-    @Column({ type: 'boolean', default: false })
-    can_join_groups: boolean; // Может ли присоединяться к группам
-  
-    @Column({ type: 'boolean', default: false })
-    can_read_all_group_messages: boolean; // Может ли читать все сообщения
-  
-    @Column({ type: 'boolean', default: false })
-    supports_inline_queries: boolean; // Поддерживает ли инлайн-запросы
-  
-    @Column({ type: 'varchar', length: 50, default: 'default' })
-    state: string; // Текущее состояние
-  
-    @Column({ type: 'timestamp', nullable: true })
-    last_active: Date; // Последняя активность
-  
-    @OneToOne(() => UserSports, (userSports) => userSports.user)
-    userSports: UserSports;
+@Entity('users')
+export class User {
+  @PrimaryColumn({ type: 'bigint' })
+  id: number; // ID пользователя Telegram
 
-    @Column({ type: 'boolean', default: false })
-    isNewsActive: boolean;
+  @Column({ type: 'boolean', default: false })
+  is_bot: boolean;
 
-    @CreateDateColumn()
-    created_at: Date; // Дата создания записи
-  
-    @UpdateDateColumn()
-    updated_at: Date; // Дата обновления записи
-  }
+  @Column({ type: 'varchar', length: 255 })
+  first_name: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  last_name: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  username: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email: string;
+
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  language_code: string;
+
+  @Column({ type: 'boolean', default: false })
+  can_join_groups: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  can_read_all_group_messages: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  supports_inline_queries: boolean;
+
+  @Column({ type: 'varchar', length: 50, default: 'default' })
+  state: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  last_active: Date;
+
+  // Новая связь: пользователь может быть подписан на множество категорий
+  @ManyToMany(() => NewsCategory, { cascade: true })
+  @JoinTable({
+    name: 'user_news_category', // имя join-таблицы
+    joinColumn: { name: 'userId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'categoryId', referencedColumnName: 'id' },
+  })
+  newsCategories: NewsCategory[];
+
+  @Column({ type: 'boolean', default: false })
+  isNewsActive: boolean;
+
+  @CreateDateColumn()
+  created_at: Date;
+
+  @UpdateDateColumn()
+  updated_at: Date;
+}
