@@ -43,5 +43,9 @@ export class UsersService {
     user.state = 'email_getted';
     return this.userRepository.save(user);
   }
+    // Метод для получения всех пользователей
+    async getAllUsers(): Promise<User[]> {
+      return this.userRepository.find();
+    }
   
 }

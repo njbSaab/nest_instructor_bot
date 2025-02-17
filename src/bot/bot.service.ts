@@ -486,8 +486,9 @@ export class BotService implements OnModuleInit {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
   }
-
-
+  /*
+  * меню подписки на новости
+  */
   private async promptNewsSubscription(ctx: any): Promise<void> {
     await ctx.reply('Желаете получать новости?', {
       reply_markup: {
@@ -496,6 +497,16 @@ export class BotService implements OnModuleInit {
         ],
       },
     });
+  }
+  /*
+  * отправка пуша 
+  */
+  public async sendMessage(chatId: number, message: string): Promise<void> {
+    try {
+      await this.bot.telegram.sendMessage(chatId, message);
+    } catch (error) {
+      console.error(`Ошибка при отправке сообщения пользователю ${chatId}:`, error);
+    }
   }
 }
 

@@ -15,6 +15,8 @@ import { UserSports } from '../entities/users-sport.entity';
 import { NewsUser } from '../entities/news-user.entity';
 import { UserSportsService } from './services/user-sports.service';
 import { UserNewsService } from './services/user-news.service';
+import { PushNotificationService } from './services/push-notification.service';
+import { PushNotificationController } from './controllers/push-notification.controller';
 
 @Module({
   imports: [
@@ -27,16 +29,17 @@ import { UserNewsService } from './services/user-news.service';
           MenuPostButton,
            UserSports,
             NewsUser,
-          ]), // Подключение сущностей
+          ]),
     UsersModule,
   ],
-  controllers: [MenuController],
+  controllers: [MenuController, PushNotificationController],
   providers: [
     BotService,
      MenuService,
       GreetingBotService,
        UserSportsService,
-        UserNewsService
+        UserNewsService,
+        PushNotificationService
       ],
   exports: [GreetingBotService], // Экспортируем, если используется в других модулях
 })

@@ -8,14 +8,14 @@ async function bootstrap() {
   config();
   console.log('[NestApplication] Инициализация приложения...');
   
-app.enableCors({
-  origin: [
-    'http://localhost:4200',
-    'https://astonishing-biscochitos-1d05c8.netlify.app',
-  ],
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true,
-});
+  app.enableCors({
+    origin: [
+      'http://localhost:4200', 
+      'https://1xjet-admin.netlify.app',
+    ],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    credentials: true,
+  });
 
   const PORT = process.env.PORT || 3000;
   console.log('PORT from env:', process.env.PORT);
