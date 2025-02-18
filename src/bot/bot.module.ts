@@ -20,32 +20,37 @@ import { PushNotificationController } from './controllers/push-notification.cont
 import { NewsCategory } from '../entities/news-category.entity';
 import { UserNewsCategoryService } from './services/user-news-category.service';
 import { User } from '../entities/user.entity';
+import { NewsCategoryController } from './controllers/ news-category.controller';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), // Глобальная конфигурация
     TypeOrmModule.forFeature([
       MenuTable,
-       MenuButton,
-        MenuPost,
-         GreetingBot,
-          MenuPostButton,
-           UserSports,
-            NewsUser,
-            NewsCategory,
-            User
+      MenuButton,
+      MenuPost,
+      GreetingBot,
+      MenuPostButton,
+      UserSports,
+      NewsUser,
+      NewsCategory,
+      User
           ]),
     UsersModule,
   ],
-  controllers: [MenuController, PushNotificationController],
+  controllers: [
+    MenuController, 
+    PushNotificationController,
+    NewsCategoryController
+  ],
   providers: [
     BotService,
-     MenuService,
-      GreetingBotService,
-       UserSportsService,
-        UserNewsService,
-        PushNotificationService,
-        UserNewsCategoryService
+    MenuService,
+    GreetingBotService,
+    UserSportsService,
+    UserNewsService,
+    PushNotificationService,
+    UserNewsCategoryService
       ],
   exports: [GreetingBotService], // Экспортируем, если используется в других модулях
 })

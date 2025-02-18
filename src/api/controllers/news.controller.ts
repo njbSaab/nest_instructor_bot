@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Param, Body, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, NotFoundException, ParseIntPipe } from '@nestjs/common';
 import { NewsUserService } from '../services/news-user.service';
 import { NewsUser } from '../../entities/news-user.entity';
 
@@ -12,15 +12,26 @@ export class NewsController {
   }
 
   @Get(':id')
-  async getNewsById(@Param('id') id: number): Promise<NewsUser> {
+  async getNewsById(@Param('id', ParseIntPipe) id: number): Promise<NewsUser> {
     return this.newsUserService.getNewsById(id);
+  }
+
+  @Post()
+  async createNews(@Body() createData: Partial<NewsUser>): Promise<NewsUser> {
+    return this.newsUserService.createNews(createData);
   }
 
   @Put(':id')
   async updateNews(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateData: Partial<NewsUser>,
   ): Promise<NewsUser> {
     return this.newsUserService.updateNews(id, updateData);
+  }
+
+  @Delete(':id')
+  async deleteNews(@Param('id', ParseIntPipe) id: number): Promise<{ success: true }> {
+    await this.newsUserService.deleteNews(id);
+    return { success: true };
   }
 }

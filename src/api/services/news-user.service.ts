@@ -27,4 +27,17 @@ export class NewsUserService {
     Object.assign(news, updateData);
     return this.newsUserRepository.save(news);
   }
+    // Новый метод создания новости
+    async createNews(createData: Partial<NewsUser>): Promise<NewsUser> {
+      const news = this.newsUserRepository.create(createData);
+      return this.newsUserRepository.save(news);
+    }
+  
+    // Новый метод удаления новости
+    async deleteNews(id: number): Promise<void> {
+      const result = await this.newsUserRepository.delete(id);
+      if (result.affected === 0) {
+        throw new NotFoundException(`News with ID ${id} not found`);
+      }
+    }
 }
