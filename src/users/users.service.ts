@@ -32,6 +32,30 @@ export class UsersService {
     user.state = newState;
     return this.userRepository.save(user);
   }
+  async updateUserNewsActiveStatus(userId: number, isActive: boolean): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error(`Пользователь с ID ${userId} не найден`);
+    }
+    user.isNewsActive = isActive;
+    return this.userRepository.save(user);
+  }
+
+  async updateUserStateActive(userId: number, newState: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new Error(`Пользователь с ID ${userId} не найден`);
+    }
+    user.state = newState;
+    
+    // Если новое состояние "start", устанавливаем isNewsActive в false
+    if (newState === 'start') {
+      user.isNewsActive = false;
+    }
+    
+    return this.userRepository.save(user);
+  }
+
 
   async updateEmailAndActivateNews(userId: number, email: string): Promise<User> {
     const user = await this.userRepository.findOne({ where: { id: userId } });

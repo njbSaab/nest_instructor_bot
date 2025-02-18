@@ -48,12 +48,6 @@ export class UserSportsService {
       case 2: // basketball
         userSports.basketball = isYes;
         break;
-      case 3: // box
-        userSports.box = isYes;
-        break;
-      case 4: // ufc
-        userSports.ufc = isYes;
-        break;
       default:
         console.log(`Неизвестный categoryId=${categoryId}, пропускаем`);
     }

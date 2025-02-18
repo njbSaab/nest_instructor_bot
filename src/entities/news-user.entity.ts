@@ -23,8 +23,11 @@ export class NewsUser {
   @Column({ type: 'text', nullable: true })
   post_content: string;
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
+  @Column({ type: 'text', nullable: true })
   post_image_url: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  btn_title: string;
 
   /**
    * Вместо enum мы создаём связь с таблицей категорий.

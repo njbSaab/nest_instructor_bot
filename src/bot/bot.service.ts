@@ -111,9 +111,9 @@ export class BotService implements OnModuleInit {
         // Если попытки закончились (<= 0)
         if (userVerification.attempts <= 0) {
           // Обновляем состояние пользователя на "start" и удаляем запись
-          await this.usersService.updateUserState(user.id, 'start');
+          await this.usersService.updateUserStateActive(user.id, 'start');
           this.emailVerification.delete(user.id);
-          await ctx.reply('Попытки исчерпаны. Пожалуйста, нажмите "⬅️ Назад" для повторного начала.');
+          await ctx.reply('Попытки исчерпаны. Выберите что-то из меню');
           await this.sendMainMenu(ctx, null);
         } else {
           // Если ещё остались попытки – сообщаем об этом пользователю
@@ -170,9 +170,8 @@ export class BotService implements OnModuleInit {
         await ctx.reply('Код подтвержден! Ваш email подтвержден, и новости активированы.');
         // Удаляем данные верификации
         this.emailVerification.delete(user.id);
-        
-        // Выводим inline-клавиатуру с кнопками для подписки на новости
-        await this.promptNewsSubscription(ctx);
+        await this.sendNewsToUser(ctx, user.id);
+
       } else {
         // Код неверный, уменьшаем количество попыток
         verification.attempts--;
@@ -278,42 +277,7 @@ export class BotService implements OnModuleInit {
       await ctx.answerCbQuery('Некорректные данные');
       return;
     }
-  
-    // Если это кнопки подписки на новости (news_subscribe_yes/ no)
-    if (callbackData === 'news_subscribe_yes') {
-      const userId = ctx.from.id;
-      const subscribedCategories = await this.userNewsCategoryService.getSubscriptions(userId);
-      const newsItems = await this.userServiceNews.getNewsByCategories(subscribedCategories);
-      if (newsItems.length > 0) {
-        let index = 0;
-        const sendNextNews = async () => {
-          const news = newsItems[index];
-          if (news.post_image_url) {
-            await ctx.replyWithPhoto(news.post_image_url, {
-              caption: `${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`,
-            });
-          } else {
-            await ctx.reply(`${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`);
-          }
-          index++;
-          if (index < newsItems.length) {
-            // Ждем 2 секунды перед отправкой следующей новости
-            setTimeout(sendNextNews, 2000);
-          }
-        };
-        await sendNextNews();
-      } else {
-        await ctx.reply('К сожалению, новостей по вашим категориям пока нет.');
-      }
-      await ctx.answerCbQuery();
-      return;
-    }
 
-    if (callbackData === 'news_subscribe_no') {
-      await ctx.reply('Хорошо, новости не будут отправляться.');
-      await ctx.answerCbQuery();
-      return;
-    }
     // Пытаемся распарсить callbackData как ID кнопки
     const buttonId = parseInt(callbackData, 10);
     if (isNaN(buttonId)) {
@@ -330,7 +294,6 @@ export class BotService implements OnModuleInit {
       await ctx.answerCbQuery();
       return;
     }
-  
     // Если это кнопка для новостей (categorySportId === 0)
     if (button.categorySportId === 0) {
       const userId = ctx.from.id;
@@ -348,13 +311,29 @@ export class BotService implements OnModuleInit {
             let index = 0;
             const sendNextNews = async () => {
               const news = newsItems[index];
+            
+              // Формируем строку с названием категории, если она есть
+              const categoryText = news.category ? `Категория: ${news.category.name}\n` : '';
+            
+              // Если у новости есть ссылка и заголовок для кнопки, формируем inline-клавиатуру
+              const inlineKeyboard = (news.news_url && news.btn_title)
+                ? { inline_keyboard: [[{ text: news.btn_title, url: news.news_url }]] }
+                : undefined;
+            
               if (news.post_image_url) {
+                // Если есть изображение — отправляем фото с подписью
                 await ctx.replyWithPhoto(news.post_image_url, {
-                  caption: `${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`,
+                  caption: `${news.post_title}\n\n${news.post_content}\n\n${categoryText}`,
+                  reply_markup: inlineKeyboard,
                 });
               } else {
-                await ctx.reply(`${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`);
+                // Иначе — отправляем обычное текстовое сообщение
+                await ctx.reply(
+                  `${news.post_title}\n\n${news.post_content}\n\n${categoryText}`,
+                  { reply_markup: inlineKeyboard }
+                );
               }
+              
               index++;
               if (index < newsItems.length) {
                 setTimeout(sendNextNews, 2000);
@@ -389,7 +368,7 @@ export class BotService implements OnModuleInit {
       // Обновляем подписку через новый сервис
       await this.userNewsCategoryService.updateSubscription(userId, categoryId, isYes);
       
-      await ctx.reply(isYes ? 'Вы подписались!' : 'Вы отписались!');
+      await ctx.reply(isYes ? '✅' : '❌');
       
       const maxCategoryId = await this.menuService.getMaxCategorySportId();
       if (categoryId === maxCategoryId) {
@@ -491,14 +470,31 @@ export class BotService implements OnModuleInit {
   /*
   * меню подписки на новости
   */
-  private async promptNewsSubscription(ctx: any): Promise<void> {
-    await ctx.reply('Желаете получать новости?', {
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '✅ Да', callback_data: 'news_subscribe_yes' },{ text: '❌ Нет', callback_data: 'news_subscribe_no' }],
-        ],
-      },
-    });
+  private async sendNewsToUser(ctx: any, userId: number): Promise<void> {
+    // Получаем подписки как массив имен категорий
+    const subscribedCategories = await this.userNewsCategoryService.getSubscriptions(userId);
+    // Получаем новости по этим категориям
+    const newsItems = await this.userServiceNews.getNewsByCategories(subscribedCategories);
+    if (newsItems.length > 0) {
+      let index = 0;
+      const sendNextNews = async () => {
+        const news = newsItems[index];
+        if (news.post_image_url) {
+          await ctx.replyWithPhoto(news.post_image_url, {
+            caption: `${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`,
+          });
+        } else {
+          await ctx.reply(`${news.post_title}\n\n${news.post_content}\n\nСсылка: ${news.news_url || ''}`);
+        }
+        index++;
+        if (index < newsItems.length) {
+          setTimeout(sendNextNews, 2000);
+        }
+      };
+      await sendNextNews();
+    } else {
+      await ctx.reply('К сожалению, новостей по вашим категориям пока нет.');
+    }
   }
   /*
   * отправка пуша 
@@ -511,4 +507,3 @@ export class BotService implements OnModuleInit {
     }
   }
 }
-
