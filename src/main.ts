@@ -12,12 +12,13 @@ async function bootstrap() {
     origin: [
       'http://localhost:4200', 
       'https://1xjet-admin.netlify.app',
+      'https://1xjet-admin.netlify.app/admin',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  const PORT = process.env.PORT || 3000;
+  const PORT = process.env.PORT || 3001;
   console.log('PORT from env:', process.env.PORT);
   
   try {

@@ -21,6 +21,7 @@ import { NewsCategory } from '../entities/news-category.entity';
 import { UserNewsCategoryService } from './services/user-news-category.service';
 import { User } from '../entities/user.entity';
 import { NewsCategoryController } from './controllers/ news-category.controller';
+import { TextMessageHandler } from './handlers/text-message.handler';
 
 @Module({
   imports: [
@@ -50,7 +51,8 @@ import { NewsCategoryController } from './controllers/ news-category.controller'
     UserSportsService,
     UserNewsService,
     PushNotificationService,
-    UserNewsCategoryService
+    UserNewsCategoryService,
+    TextMessageHandler
       ],
   exports: [GreetingBotService], // Экспортируем, если используется в других модулях
 })

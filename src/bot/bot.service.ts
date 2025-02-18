@@ -4,7 +4,6 @@ import { Telegraf } from 'telegraf';
 import { MenuService } from './services/menu.service';
 import { UsersService } from '../users/users.service';
 import { GreetingBotService } from './services/greeting-bot.service';
-import { UserSportsService } from './services/user-sports.service';
 import { UserNewsService } from './services/user-news.service';
 import{ UserNewsCategoryService } from './services/user-news-category.service'
 import axios from 'axios';
@@ -20,7 +19,6 @@ export class BotService implements OnModuleInit {
     private readonly menuService: MenuService,
     private readonly usersService: UsersService,
     private readonly greetingBotService: GreetingBotService,
-    private readonly userSportsService: UserSportsService, 
     private readonly userServiceNews: UserNewsService,
     private readonly userNewsCategoryService: UserNewsCategoryService
   ) {
@@ -56,7 +54,7 @@ export class BotService implements OnModuleInit {
     console.log('[BotService] Получена команда /start');
     const user = await this.usersService.findOrCreateUser(ctx.from);
     console.log('[BotService] Пользователь добавлен/обновлён:', user);
-
+  
     const greetings = await this.greetingBotService.getAllGreetings();
     for (const greeting of greetings) {
       const personalizedText = greeting.greeting_text.replace('[Name]', user.first_name || 'there');
@@ -67,7 +65,16 @@ export class BotService implements OnModuleInit {
       }
       await new Promise((resolve) => setTimeout(resolve, 2500));
     }
-    await this.sendMainMenu(ctx);
+  
+    // Получаем последнее меню пользователя
+    const lastMenu = await this.menuService.getLastMenu(user.id);
+    if (lastMenu) {
+      // Если последнее меню найдено, передаём его идентификатор (или parentId, если нужно)
+      await this.sendMainMenu(ctx, lastMenu.id);
+    } else {
+      // Иначе открываем стандартное главное меню
+      await this.sendMainMenu(ctx, null);
+    }
   }
   /*
    * Обработка текстового сообщения
@@ -85,19 +92,39 @@ export class BotService implements OnModuleInit {
   const user = await this.usersService.findOrCreateUser(ctx.from);
   // Если пользователь находится в состоянии ожидания email
   // Внутри метода handleTextMessage, когда пользователь в состоянии 'awaiting_email'
-  
+
     // Если пользователь находится в состоянии ожидания email
     if (user.state === 'awaiting_email') {
+      // Получаем объект верификации для пользователя или инициализируем его с 3 попытками
+      let userVerification = this.emailVerification.get(user.id);
+      if (!userVerification) {
+        userVerification = { code: '', attempts: 3 };
+        this.emailVerification.set(user.id, userVerification);
+      }
+    
+      // Если введённый текст не является корректным email
       if (!this.validateEmail(text)) {
-        await ctx.reply('Некорректный email. Пожалуйста, введите правильный email:');
+        // Уменьшаем количество попыток
+        userVerification.attempts--;
+        this.emailVerification.set(user.id, userVerification);
+        
+        // Если попытки закончились (<= 0)
+        if (userVerification.attempts <= 0) {
+          // Обновляем состояние пользователя на "start" и удаляем запись
+          await this.usersService.updateUserState(user.id, 'start');
+          this.emailVerification.delete(user.id);
+          await ctx.reply('Попытки исчерпаны. Пожалуйста, нажмите "⬅️ Назад" для повторного начала.');
+          await this.sendMainMenu(ctx, null);
+        } else {
+          // Если ещё остались попытки – сообщаем об этом пользователю
+          await ctx.reply(`Некорректный email. Осталось ${userVerification.attempts} попыток. Пожалуйста, введите правильный email.`);
+        }
         return;
       }
-      
-      // Генерируем случайный 5-значный код
+    
+      // Если email корректный, генерируем код и отправляем его
       const code = Math.floor(10000 + Math.random() * 90000).toString();
-      
       try {
-        // Отправляем HTTP POST запрос на указанный адрес с email и кодом
         const response = await axios.post('http://localhost:3123/api/feedback', {
           email: text,
           code: code,
@@ -113,16 +140,15 @@ export class BotService implements OnModuleInit {
         return;
       }
       
-      // Обновляем email, устанавливаем isNewsActive = true
+      // Обновляем email и активируем получение новостей
       await this.usersService.updateEmailAndActivateNews(user.id, text);
       await ctx.reply('Спасибо! Ваш email сохранен, новости активированы.');
       
-      // Сохраняем сгенерированный код и 3 попытки для пользователя
+      // Сохраняем сгенерированный код и сбрасываем счётчик попыток (на 3)
       this.emailVerification.set(user.id, { code, attempts: 3 });
       
       // Переводим пользователя в состояние ожидания ввода кода
       await this.usersService.updateUserState(user.id, 'awaiting_code');
-      
       await ctx.reply('Пожалуйста, введите код, который был отправлен на ваш email:');
       return;
     }
@@ -137,6 +163,7 @@ export class BotService implements OnModuleInit {
         return;
       }
       
+
       if (text === verification.code) {
         // Код введён верно, обновляем состояние пользователя
         await this.usersService.updateUserState(user.id, 'email_getted');
@@ -160,6 +187,7 @@ export class BotService implements OnModuleInit {
       }
       return;
     }
+
     // Если пользователь нажал "⬅️ Назад"
     if (text === '⬅️ Назад') {
         const userId = ctx.from.id;
@@ -193,7 +221,7 @@ export class BotService implements OnModuleInit {
         }
 
         console.log('[BotService] Нет родительского меню для возврата.');
-        await this.sendMainMenu(ctx); // Возвращаемся в главное меню, если родительского меню нет
+        await this.sendMainMenu(ctx, userId); // Возвращаемся в главное меню, если родительского меню нет
         return;
     }
 
@@ -395,7 +423,6 @@ export class BotService implements OnModuleInit {
     await ctx.reply('Нет данных для отображения по этой кнопке.');
     await ctx.answerCbQuery();
   }
-
   /*
    * Логика обработки поста
    */
