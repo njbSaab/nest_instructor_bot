@@ -7,16 +7,32 @@ export class PushNotificationController {
 
   @Post()
   async pushMessage(
-    @Body('message') message: string,
-    @Query('categoryId') categoryId?: string, // получаем как строку, если передан
+    @Body() body: { text?: string; imageUrl?: string; buttonName?: string; buttonUrl?: string; categoryIds?: number[] },
+    @Query('categoryId') categoryId?: string,
   ) {
+    const { text, imageUrl, buttonName, buttonUrl } = body;
+
+    // Валидация: минимум один элемент должен быть
+    if (!text && !imageUrl) {
+      throw new Error('Сообщение должно содержать хотя бы текст или изображение');
+    }
+
+    // Валидация: нельзя отправить только кнопку без текста
+    if (!text && !imageUrl && (buttonName || buttonUrl)) {
+      throw new Error('Кнопка не может быть отправлена без текста или изображения');
+    }
+
+    // Формируем сообщение для отправки
+    const messagePayload = { text, imageUrl, buttonName, buttonUrl };
+    console.log('Подготовлено сообщение для отправки:', messagePayload);
+
     if (categoryId) {
       const catId = parseInt(categoryId, 10);
-      await this.pushNotificationService.sendPushToCategory(catId, message);
-      return { success: true, message: `Push уведомление отправлено подписчикам категории ${catId}` };
+      await this.pushNotificationService.sendPushToCategory(catId, messagePayload);
+      return { success: true, message: `Push отправлен подписчикам категории ${catId}` };
     } else {
-      await this.pushNotificationService.sendPushToAllUsers(message);
-      return { success: true, message: 'Push уведомление отправлено всем пользователям' };
+      await this.pushNotificationService.sendPushToAllUsers(messagePayload);
+      return { success: true, message: 'Push отправлен всем пользователям' };
     }
   }
 }

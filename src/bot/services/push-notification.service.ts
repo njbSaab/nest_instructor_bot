@@ -12,23 +12,47 @@ export class PushNotificationService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // Отправка пуша всем пользователям
-  async sendPushToAllUsers(message: string): Promise<void> {
+  async sendPushToAllUsers(payload: { text?: string; imageUrl?: string; buttonName?: string; buttonUrl?: string }) {
     const users = await this.userRepository.find();
+    console.log(`Найдено пользователей для отправки: ${users.length}`);
+
+    let successCount = 0;
+    let failCount = 0;
+
     for (const user of users) {
-      await this.botService.sendMessage(user.id, message);
+      console.log(`Отправка сообщения пользователю ${user.id}`);
+      const success = await this.botService.sendMessage(user.id, payload);
+      if (success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
     }
+
+    console.log(`Отправка завершена. Успешно: ${successCount}, Неудачно: ${failCount}`);
   }
 
-  // Отправка пуша только пользователям, подписанным на конкретную категорию
-  async sendPushToCategory(categoryId: number, message: string): Promise<void> {
+  async sendPushToCategory(categoryId: number, payload: { text?: string; imageUrl?: string; buttonName?: string; buttonUrl?: string }) {
     const users = await this.userRepository
       .createQueryBuilder('user')
       .innerJoin('user.newsCategories', 'category', 'category.id = :categoryId', { categoryId })
       .getMany();
-      
+
+    console.log(`Найдено пользователей в категории ${categoryId}: ${users.length}`);
+
+    let successCount = 0;
+    let failCount = 0;
+
     for (const user of users) {
-      await this.botService.sendMessage(user.id, message);
+      console.log(`Отправка сообщения пользователю ${user.id} в категории ${categoryId}`);
+      const success = await this.botService.sendMessage(user.id, payload);
+      if (success) {
+        successCount++;
+      } else {
+        failCount++;
+      }
     }
+
+    console.log(`Отправка в категорию ${categoryId} завершена. Успешно: ${successCount}, Неудачно: ${failCount}`);
   }
 }

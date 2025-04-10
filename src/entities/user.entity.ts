@@ -1,10 +1,12 @@
-import { Entity, PrimaryColumn, Column, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+// src/entities/user.entity.ts
+import { Entity, PrimaryColumn, Column, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
 import { NewsCategory } from './news-category.entity';
+import { UserEmailMessage } from './user-email-message.entity';
 
 @Entity('users')
 export class User {
   @PrimaryColumn({ type: 'bigint' })
-  id: number; // ID пользователя Telegram
+  id: number;
 
   @Column({ type: 'boolean', default: false })
   is_bot: boolean;
@@ -39,10 +41,9 @@ export class User {
   @Column({ type: 'timestamp', nullable: true })
   last_active: Date;
 
-  // Новая связь: пользователь может быть подписан на множество категорий
   @ManyToMany(() => NewsCategory, { cascade: true })
   @JoinTable({
-    name: 'user_news_category', // имя join-таблицы
+    name: 'user_news_category',
     joinColumn: { name: 'userId', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'categoryId', referencedColumnName: 'id' },
   })
@@ -50,6 +51,9 @@ export class User {
 
   @Column({ type: 'boolean', default: false })
   isNewsActive: boolean;
+
+  @OneToMany(() => UserEmailMessage, (emailMessage) => emailMessage.user)
+  emailMessages: UserEmailMessage[];
 
   @CreateDateColumn()
   created_at: Date;

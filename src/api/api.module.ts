@@ -20,7 +20,13 @@ import { MenuButtonInlineController } from './controllers/menu-buttons-inline.co
 import { NewsUserService } from './services/news-user.service';
 import { NewsController } from './controllers/news.controller';
 import { NewsUser } from '../entities/news-user.entity';
-
+import { UploadController } from './controllers/upload.controller';
+import { ImagesController } from './controllers/image.controller';
+import { LocalUploadService } from './services/local-upload.service';
+import { UserEmailMessage } from '../entities/user-email-message.entity';
+import { UsersEmailsService } from './services/users-emails.service';
+import { UsersEmailsController } from './controllers/users-emails.controller';
+import { UsersModule } from '../users/users.module'; 
 @Module({
   imports: [
     TypeOrmModule.forFeature([      
@@ -29,8 +35,9 @@ import { NewsUser } from '../entities/news-user.entity';
         MenuButton,
         GreetingBot,
         MenuPostButton,
-        NewsUser
-    ]), // Импортируем сущности
+        NewsUser,
+        UserEmailMessage
+    ]),UsersModule
   ],
   controllers: [
     ApiController,
@@ -39,7 +46,10 @@ import { NewsUser } from '../entities/news-user.entity';
     MenuTableController, 
     MenuPostButtonsController,
     MenuButtonInlineController,
-    NewsController
+    NewsController,
+    UploadController,
+    ImagesController, 
+    UsersEmailsController
     ], // Регистрируем контроллер
   providers: [
     ApiService,
@@ -48,7 +58,9 @@ import { NewsUser } from '../entities/news-user.entity';
     MenuTableService,
     MenuPostButtonsService,
     MenuButtonInlineService,
-    NewsUserService
+    NewsUserService,
+    LocalUploadService,
+    UsersEmailsService
       ], // Регистрируем сервис
   exports: [ApiService], // Экспортируем сервис, если потребуется в других модулях
 })

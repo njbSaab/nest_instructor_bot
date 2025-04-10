@@ -10,7 +10,7 @@ export class NewsCategoryController {
     private readonly categoryRepository: Repository<NewsCategory>,
   ) {}
 
-  // GET /categories – возвращает все категории
+  // GET /categories – возвращает все категор
   @Get()
   async getAllCategories(): Promise<NewsCategory[]> {
     return this.categoryRepository.find();
